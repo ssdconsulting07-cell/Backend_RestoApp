@@ -47,7 +47,17 @@ Paquets transverses (infrastructure partagée, pas une fonctionnalité en soi) :
 2. **Authentification par rôle** — un JWT porte le rôle du staff (`CUISINE`, `GERANT`, `MANAGER`, `LIVREUR`) ; l'App Client n'authentifie jamais ses utilisateurs.
 3. **Versioning des routes** — toutes les routes sont servies sous `/api/v1`.
 4. **Format d'erreur standard** — toute erreur API renvoie `{ code, message, field }`.
-5. **Stratégie de branches (identique dans les 3 dépôts)** : `feature/*` → PR vers `develop` → `staging` → `preprod` → `main`. Branches principales protégées, chaque promotion passe par la CI (voir `.github/workflows/`).
+5. **Stratégie de branches** — voir la section "CI/CD et stratégie de branches" plus bas.
+
+## CI/CD et stratégie de branches
+
+Flux : `feature/*` → PR vers `develop` → `staging` → `preprod` → `main`. Structure identique dans les 3 dépôts (`Backend_RestoApp`, `Client_RestoApp`, `Manager_RestoApp`).
+
+- **Branche par défaut du dépôt : `develop`** (pas `main`) — pour que GitHub propose `develop` par défaut à la création d'une PR, et éviter les merges accidentels vers `main` (incident déjà vécu sur l'ancien monorepo).
+- **`develop`** : la CI (check `build`, voir `.github/workflows/`) doit passer avant de merger une PR. Pas de relecture obligatoire.
+- **`staging`, `preprod`, `main`** : la CI (check `build`) doit passer **et** au moins 1 relecture (review) approuvée est obligatoire avant de merger.
+- Ces règles sont appliquées via les "branch protection rules" GitHub sur les 3 dépôts (branches principales protégées, non contournables sauf par un admin).
+- L'ancien monorepo `Resto_app` est désormais **archivé** (lecture seule) — ce dépôt-ci est la référence actuelle pour l'équipe Backend.
 
 ## Palette / identité
 
