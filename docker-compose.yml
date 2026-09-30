@@ -1,0 +1,50 @@
+# Depot Backend_RestoApp - backend seul + MySQL (plus de dossier ./backend, tout est a la racine).
+# Environnement de developpement partage entre les 3 equipes (voir README.md,
+# convention "04 - Environnement partage") : backend + MySQL tournent en continu
+# ici, plutot que chaque equipe lance sa propre instance locale.
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: senyummies-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - senyummies-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+    container_name: senyummies-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Relaxed binding Spring : APP_JWT_SECRET -> app.jwt.secret, etc.
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET}
+      APP_JWT_EXPIRATION_MS: 86400000
+      APP_AUTH_SEED_ENABLED: ${APP_AUTH_SEED_ENABLED:-false}
+      APP_AUTH_SEED_CUISINE_PASSWORD: ${APP_AUTH_SEED_CUISINE_PASSWORD:-}
+      APP_AUTH_SEED_GERANT_PASSWORD: ${APP_AUTH_SEED_GERANT_PASSWORD:-}
+      APP_AUTH_SEED_MANAGER_PASSWORD: ${APP_AUTH_SEED_MANAGER_PASSWORD:-}
+      APP_AUTH_SEED_LIVREUR_PASSWORD: ${APP_AUTH_SEED_LIVREUR_PASSWORD:-}
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174
+    ports:
+      - "8080:8080"
+
+volumes:
+  senyummies-mysql-data:

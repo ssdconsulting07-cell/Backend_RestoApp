@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: SenYummies API
+  description: >
+    API commune du projet SenYummies, developpe pour le restaurant Chez Ketchup.
+    Consommee par les deux frontends : App Client (public, commande invite) et
+    SenYummies Manager (interne, authentifie par role). Ce contrat est la source
+    de verite entre les 3 equipes : toute modification passe par une revue du
+    lead Backend avant merge.
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Environnement de developpement local
+tags:
+  - name: Authentification
+  - name: Produits
+  - name: Commandes
+  - name: Paiements
+security: []
+paths:
+  /auth/login:
+    post:
+      tags: [Authentification]
+      summary: Connexion du staff SenYummies Manager
+      description: Seul le back-office authentifie ses utilisateurs. L'App Client ne l'appelle jamais.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion reussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /produits:
+    get:
+      tags: [Produits]
+      summary: Liste du menu, visible sans authentification
+      security: []
+      responses:
+        '200':
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Produit'
+
+  /commandes:
+    post:
+      tags: [Commandes]
+      summary: Creation d'une commande par un client invite (sans compte)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandeCreation'
+      responses:
+        '201':
+          description: Commande creee (statut initial CREEE, en attente de paiement)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '400':
+          description: Requete invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    get:
+      tags: [Commandes]
+      summary: Liste des commandes (staff uniquement)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des commandes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Commande'
+        '401':
+          description: Non authentifie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /commandes/{id}:
+    get:
+      tags: [Commandes]
+      summary: Suivi d'une commande par son identifiant (client invite)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CommandeId'
+      responses:
+        '200':
+          description: Etat de la commande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '404':
+          description: Commande introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /commandes/{id}/statut:
+    patch:
+      tags: [Commandes]
+      summary: Mise a jour du statut par le staff (Cuisine, Livreur, Gerant, Manager selon le statut)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [statut]
+              properties:
+                statut:
+                  $ref: '#/components/schemas/StatutCommande'
+      responses:
+        '200':
+          description: Commande mise a jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '403':
+          description: Role insuffisant pour cette transition de statut
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /paiements/init:
+    post:
+      tags: [Paiements]
+      summary: Initialisation du paiement d'une commande
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [commandeId]
+              properties:
+                commandeId:
+                  type: string
+      responses:
+        '200':
+          description: Reference et lien de paiement a suivre
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaiementInit'
+
+  /paiements/webhook:
+    post:
+      tags: [Paiements]
+      summary: Callback du prestataire de paiement (PayDunya ou API directe, selon choix du PDG)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Format specifique au prestataire retenu (a preciser avec le PDG)
+      responses:
+        '200':
+          description: Callback pris en compte
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CommandeId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+    Role:
+      type: string
+      enum: [CUISINE, GERANT, MANAGER, LIVREUR]
+    Produit:
+      type: object
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+        description:
+          type: string
+        prix:
+          type: number
+          format: double
+        disponible:
+          type: boolean
+    LigneCommande:
+      type: object
+      required: [produitId, quantite]
+      properties:
+        produitId:
+          type: string
+        quantite:
+          type: integer
+          minimum: 1
+    CommandeCreation:
+      type: object
+      required: [lignes, telephone, mode]
+      properties:
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LigneCommande'
+        telephone:
+          type: string
+        mode:
+          type: string
+          enum: [RETRAIT, LIVRAISON]
+        adresse:
+          type: string
+          description: Requis uniquement si mode = LIVRAISON
+    StatutCommande:
+      type: string
+      enum: [CREEE, PAYEE, EN_PREPARATION, PRETE, EN_LIVRAISON, LIVREE, RETIREE]
+    Commande:
+      type: object
+      properties:
+        id:
+          type: string
+        statut:
+          $ref: '#/components/schemas/StatutCommande'
+        lignes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LigneCommande'
+        total:
+          type: number
+          format: double
+        mode:
+          type: string
+          enum: [RETRAIT, LIVRAISON]
+        creeLe:
+          type: string
+          format: date-time
+    PaiementInit:
+      type: object
+      properties:
+        paymentReference:
+          type: string
+        redirectUrl:
+          type: string
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        field:
+          type: string
+          nullable: true
