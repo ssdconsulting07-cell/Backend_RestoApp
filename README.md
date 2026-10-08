@@ -13,6 +13,8 @@ docker compose up --build
 
 Le backend est alors sur `http://localhost:8080/api/v1`, Swagger UI sur `http://localhost:8080/api/v1/swagger-ui.html`.
 
+> Le projet Docker Compose est nomme explicitement `senyummies` (champ `name:` dans `docker-compose.yml`) pour ne jamais entrer en collision avec un autre projet local. Ne pas relancer avec `-p code` (ou un autre nom generique partage) : cela peut arreter/supprimer les containers d'un projet different portant le meme nom.
+
 **Option locale (sans Docker), prérequis JDK 17 + Maven :**
 
 ```
