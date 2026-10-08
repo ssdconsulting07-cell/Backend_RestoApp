@@ -14,6 +14,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import sn.chezketchup.backend.auth.StaffUser;
+import sn.chezketchup.backend.auth.StaffUserRepository;
 
 /**
  * Lit le header Authorization: Bearer &lt;token&gt;, verifie le JWT et place le
@@ -24,9 +26,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final StaffUserRepository staffUserRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, StaffUserRepository staffUserRepository) {
         this.jwtService = jwtService;
+        this.staffUserRepository = staffUserRepository;
     }
 
     @Override
@@ -41,11 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.parseClaims(header.substring(7));
                 String username = claims.getSubject();
-                String role = claims.get("role", String.class);
+                StaffUser staffUser = staffUserRepository.findByUsernameIgnoreCase(username)
+                    .filter(StaffUser::isActive)
+                    .filter(user -> !user.mustChangePassword())
+                    .orElseThrow();
 
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + staffUser.getRole().name());
                 UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of(authority));
+                    new UsernamePasswordAuthenticationToken(staffUser.getUsername(), null, List.of(authority));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception ex) {
                 SecurityContextHolder.clearContext();

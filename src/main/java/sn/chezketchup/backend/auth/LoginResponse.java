@@ -7,6 +7,8 @@ import sn.chezketchup.backend.security.Role;
         + "et role du staff utilise par le frontend pour choisir vers quel espace rediriger.")
 public record LoginResponse(
         @Schema(description = "Token JWT, a envoyer ensuite en 'Authorization: Bearer <token>'") String token,
-        @Schema(description = "Role du staff connecte (CUISINE, GERANT, MANAGER, LIVREUR)") Role role
+        @Schema(description = "Role du staff connecte (CUISINE, GERANT, MANAGER, LIVREUR)") Role role,
+        @Schema(description = "Vrai si le mot de passe temporaire doit etre remplace avant l'acces au Manager")
+        boolean mustChangePassword
 ) {
 }
