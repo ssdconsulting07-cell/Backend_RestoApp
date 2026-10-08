@@ -2,6 +2,15 @@
 # Environnement de developpement partage entre les 3 equipes (voir README.md,
 # convention "04 - Environnement partage") : backend + MySQL tournent en continu
 # ici, plutot que chaque equipe lance sa propre instance locale.
+# Nom de projet Docker Compose fixe explicitement pour isoler cet
+# environnement des autres projets locaux (ex. AlloAppart) qui partagent
+# parfois le nom de projet generique "code" via `docker compose -p code`.
+# Ne JAMAIS relancer avec `-p code` ici : utiliser `docker compose up -d`
+# (sans -p) ou `docker compose -p senyummies up -d` explicitement, sinon
+# un `down` sur ce projet arretera aussi les containers d'un autre projet
+# partageant le meme nom (incident du 08/10/2026).
+name: senyummies
+
 services:
   mysql:
     image: mysql:8.0
