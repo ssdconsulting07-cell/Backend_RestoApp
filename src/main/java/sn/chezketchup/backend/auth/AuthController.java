@@ -45,4 +45,17 @@ public class AuthController {
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request.username(), request.password());
     }
+
+        @PostMapping("/first-login-password")
+        @Operation(
+                        summary = "Remplacer un mot de passe temporaire",
+                        description = "Valide le mot de passe temporaire, enregistre le nouveau, puis ouvre la session staff."
+        )
+        public LoginResponse changeTemporaryPassword(@Valid @RequestBody FirstLoginPasswordRequest request) {
+                return authService.changeTemporaryPassword(
+                                request.username(),
+                                request.temporaryPassword(),
+                                request.newPassword()
+                );
+        }
 }
