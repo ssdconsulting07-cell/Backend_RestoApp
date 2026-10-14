@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import sn.chezketchup.backend.security.Role;
 
 @Entity
@@ -34,7 +36,16 @@ public class StaffUser {
     @Column(nullable = false)
     private String passwordHash;
 
+    // JdbcTypeCode(VARCHAR) force une colonne VARCHAR plutot que le type ENUM
+    // natif MySQL que Hibernate 6 choisit par defaut pour un enum STRING sur ce
+    // dialecte : un ENUM natif fige la liste de valeurs a la creation de la
+    // table, et ddl-auto=update ne la met jamais a jour -> ajouter un role
+    // (ex. VENDEUR) plantait l'appli sur toute base deja existante avec
+    // "Data truncated for column 'role'". Les bases creees avant ce correctif
+    // doivent migrer une fois : ALTER TABLE staff_users MODIFY role VARCHAR(20);
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(length = 20)
     private Role role;
 
     private boolean active = true;

@@ -8,5 +8,6 @@ public enum Role {
     CUISINE,
     GERANT,
     MANAGER,
-    LIVREUR
+    LIVREUR,
+    VENDEUR
 }
