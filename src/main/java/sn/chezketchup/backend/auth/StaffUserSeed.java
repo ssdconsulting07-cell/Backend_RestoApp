@@ -26,6 +26,9 @@ public class StaffUserSeed implements CommandLineRunner {
     @Value("${app.auth.seed.livreur.password}")
     private String livreurPassword;
 
+    @Value("${app.auth.seed.vendeur.password}")
+    private String vendeurPassword;
+
     public StaffUserSeed(StaffUserRepository staffUserRepository, PasswordEncoder passwordEncoder) {
         this.staffUserRepository = staffUserRepository;
         this.passwordEncoder = passwordEncoder;
@@ -37,6 +40,7 @@ public class StaffUserSeed implements CommandLineRunner {
         createIfMissing("gerant", gerantPassword, Role.GERANT);
         createIfMissing("manager", managerPassword, Role.MANAGER);
         createIfMissing("livreur", livreurPassword, Role.LIVREUR);
+        createIfMissing("vendeur", vendeurPassword, Role.VENDEUR);
     }
 
     private void createIfMissing(String username, String password, Role role) {
