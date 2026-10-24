@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/staff-users")
-@PreAuthorize("hasRole('GERANT')")
+@PreAuthorize("hasAnyRole('GERANT', 'MANAGER')")
 public class StaffUserController {
 
     private final StaffUserManagementService staffUserManagementService;
