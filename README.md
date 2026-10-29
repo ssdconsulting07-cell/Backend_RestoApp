@@ -43,6 +43,8 @@ Paquets transverses (infrastructure partagée, pas une fonctionnalité en soi) :
 
 `contrat-api/openapi.yaml` est la source de vérité, versionnée ici avec le code. Les équipes Client et Manager n'ont **pas besoin du fichier en local** : elles consultent la documentation générée automatiquement (Swagger UI) une fois le backend lancé — `http://localhost:8080/api/v1/swagger-ui.html`. Toute modification du contrat passe par une revue du lead Backend avant merge.
 
+> Audit croisé Client/Manager du 29/10/2026 : `contrat-api/notes-audit-frontend.md` (et son export `docs/backend-contrat-api-bd.pdf`) documente le schéma de données ciblé et les écarts constatés avec `openapi.yaml` actuel (statuts, zones de livraison, plats du jour, etc.) — annexe de travail pour la prochaine mise à jour du contrat, ne remplace pas `openapi.yaml`.
+
 ## Conventions partagées entre les 3 équipes (identiques dans les 3 dépôts)
 
 1. **Contrat d'API d'abord** — voir ci-dessus.
