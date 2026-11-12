@@ -7,13 +7,14 @@ info:
     SenYummies Manager (interne, authentifie par role). Ce contrat est la source
     de verite entre les 3 equipes : toute modification passe par une revue du
     lead Backend avant merge.
-  version: "0.1.0"
+  version: "0.2.0"
 servers:
   - url: http://localhost:8080/api/v1
     description: Environnement de developpement local
 tags:
   - name: Authentification
-  - name: Produits
+  - name: Catalogue
+  - name: Zones de livraison
   - name: Commandes
   - name: Paiements
 security: []
@@ -221,11 +222,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /categories:
+    get:
+      tags: [Catalogue]
+      summary: Categories du menu (publiees par le Gerant), visibles sans authentification
+      description: >
+        L'App Client n'affiche que les categories ACTIF. BROUILLON et ARCHIVE
+        restent internes au back-office (Manager, espace Gerant).
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/FiltreStatutPublication'
+      responses:
+        '200':
+          description: Liste des categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categorie'
+
   /produits:
     get:
-      tags: [Produits]
-      summary: Liste du menu, visible sans authentification
+      tags: [Catalogue]
+      summary: Produits du menu, visibles sans authentification
+      description: >
+        Cote client : seuls les produits ACTIF d'une categorie ACTIF sont
+        affiches ; disponibilite RUPTURE = affiche "Indisponible", non
+        commandable. Les plats du jour et les accompagnements/condiments sont
+        des ressources separees (fiches independantes du catalogue).
       security: []
+      parameters:
+        - $ref: '#/components/parameters/FiltreStatutPublication'
+        - name: categorieId
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Liste des produits
@@ -236,11 +269,165 @@ paths:
                 items:
                   $ref: '#/components/schemas/Produit'
 
+  /produits/{id}:
+    get:
+      tags: [Catalogue]
+      summary: Detail d'un produit
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Produit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Produit'
+        '404':
+          description: Produit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /plats-du-jour:
+    get:
+      tags: [Catalogue]
+      summary: Plats du jour (fiches independantes, rattachees a un jour de la semaine)
+      description: >
+        Plusieurs plats peuvent partager le meme jour. Cote client, seuls les
+        plats ACTIF du jour courant sont commandables ; ceux des autres jours
+        sont presentes comme programme de la semaine.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/FiltreStatutPublication'
+        - name: jour
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JourSemaine'
+      responses:
+        '200':
+          description: Liste des plats du jour
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlatDuJour'
+
+  /accompagnements-condiments:
+    get:
+      tags: [Catalogue]
+      summary: Accompagnements et condiments proposes a cote d'un produit
+      description: >
+        Meme regle a la caisse (Vendeur) et dans l'App Client : proposes sur
+        les produits de la categorie Burgers, prix ajoute au prix du produit
+        (0 = offert). Une ligne de commande porte au plus un accompagnement.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/FiltreStatutPublication'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACCOMPAGNEMENT, CONDIMENT]
+      responses:
+        '200':
+          description: Liste des fiches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccompagnementCondiment'
+
+  /annonces:
+    get:
+      tags: [Catalogue]
+      summary: Annonces publiees par le Gerant (chaines de slides)
+      description: >
+        Les chaines ACTIF sont presentees successivement dans l'App Client
+        (popup a l'arrivee), dans l'ordre de publication (publishedAt).
+        Remplace l'ancienne ressource /nouveautes.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/FiltreStatutPublication'
+      responses:
+        '200':
+          description: Liste des chaines d'annonces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Annonce'
+
+  /regions:
+    get:
+      tags: [Zones de livraison]
+      summary: Regions du Senegal, activables par le Gerant pour la livraison
+      security: []
+      parameters:
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Liste des regions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Region'
+
+  /regions/{code}/secteurs:
+    get:
+      tags: [Zones de livraison]
+      summary: Secteurs de livraison d'une region (arrondissements officiels ou zones ajoutees), avec leur prix
+      description: Les secteurs masques par le Gerant (estMasque) ne sont pas proposes au client.
+      security: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            example: DAKAR
+      responses:
+        '200':
+          description: Liste des secteurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Secteur'
+
   /commandes:
     post:
       tags: [Commandes]
-      summary: Creation d'une commande par un client invite (sans compte)
-      security: []
+      summary: Creation d'une commande (App Client invite, ou Vendeur au comptoir)
+      description: >
+        canal APP (App Client, sans compte) : paiement en ligne avant creation,
+        statut initial PAYEE ; clientPrenom et clientTelephone requis ;
+        adresseLivraison et secteurId requis si mode = LIVRAISON.
+        canal COMPTOIR (Vendeur, authentifie) : mode RETRAIT.
+        Le serveur fige nom et prixUnitaire de chaque ligne a la creation
+        (snapshot) et recalcule sousTotal / fraisLivraison / total depuis le
+        catalogue et le secteur : une valeur envoyee par le client qui ne
+        correspond pas est refusee (400), jamais prise telle quelle.
+      security:
+        - {}
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -249,33 +436,56 @@ paths:
               $ref: '#/components/schemas/CommandeCreation'
       responses:
         '201':
-          description: Commande creee (statut initial CREEE, en attente de paiement)
+          description: Commande creee
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Commande'
         '400':
-          description: Requete invalide
+          description: Requete invalide (champ manquant, produit indisponible, prix ou total incoherent)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
     get:
       tags: [Commandes]
-      summary: Liste des commandes (staff uniquement)
+      summary: Liste des commandes
+      description: >
+        Staff (bearerAuth) : files de travail Cuisine / Livreur / Vendeur,
+        filtrables par statut et canal.
+        Client invite (sans token) : clientTelephone obligatoire, ne renvoie
+        que les commandes de ce numero (historique sans compte).
       security:
+        - {}
         - bearerAuth: []
+      parameters:
+        - name: clientTelephone
+          in: query
+          required: false
+          description: Format international, ex. +221771234567
+          schema:
+            type: string
+        - name: statut
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/StatutCommande'
+        - name: canal
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Canal'
       responses:
         '200':
-          description: Liste des commandes
+          description: Liste des commandes (plus recentes d'abord)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Commande'
-        '401':
-          description: Non authentifie
+        '400':
+          description: Sans token, clientTelephone manquant
           content:
             application/json:
               schema:
@@ -305,7 +515,22 @@ paths:
   /commandes/{id}/statut:
     patch:
       tags: [Commandes]
-      summary: Mise a jour du statut par le staff (Cuisine, Livreur, Gerant, Manager selon le statut)
+      summary: Transition de statut par le staff
+      description: |
+        Transitions autorisees (le serveur les revalide, 403 sinon) - meme
+        table que Manager_RestoApp src/auth/transitions.js :
+
+        | De             | Vers           | Role(s)            | Mode      |
+        |----------------|----------------|--------------------|-----------|
+        | PAYEE          | EN_PREPARATION | CUISINE            | -         |
+        | EN_PREPARATION | PRETE          | CUISINE            | -         |
+        | PRETE          | EN_LIVRAISON   | CUISINE ou LIVREUR | LIVRAISON |
+        | EN_LIVRAISON   | LIVREE         | LIVREUR            | LIVRAISON |
+        | PRETE          | RETIREE        | VENDEUR            | RETRAIT   |
+        | PAYEE          | ANNULEE        | CUISINE            | -         |
+
+        La remise LIVREE se fait apres scan du QR presente par le client
+        (contenu "SENYUMMIES-<id>").
       security:
         - bearerAuth: []
       parameters:
@@ -328,7 +553,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Commande'
         '403':
-          description: Role insuffisant pour cette transition de statut
+          description: Role insuffisant ou transition interdite
           content:
             application/json:
               schema:
@@ -380,6 +605,13 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
+    FiltreStatutPublication:
+      name: statut
+      in: query
+      required: false
+      description: Filtre sur le statut editorial (l App Client demande ACTIF)
+      schema:
+        $ref: '#/components/schemas/StatutPublication'
     CommandeId:
       name: id
       in: path
@@ -502,9 +734,27 @@ components:
           type: string
     Role:
       type: string
-      enum: [CUISINE, GERANT, MANAGER, LIVREUR]
+      enum: [CUISINE, GERANT, MANAGER, LIVREUR, VENDEUR]
+    StatutPublication:
+      type: string
+      description: Cycle editorial du back-office (Gerant). Seul ACTIF est visible cote client.
+      enum: [BROUILLON, ACTIF, ARCHIVE]
+    Categorie:
+      type: object
+      required: [id, nom, statut]
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+        statut:
+          $ref: '#/components/schemas/StatutPublication'
+        updatedAt:
+          type: string
+          format: date-time
     Produit:
       type: object
+      required: [id, nom, prix, categorieId, statut, disponibilite]
       properties:
         id:
           type: string
@@ -514,54 +764,258 @@ components:
           type: string
         prix:
           type: number
-          format: double
-        disponible:
+          description: Prix en F CFA
+        categorieId:
+          type: string
+        photoUrl:
+          type: string
+          nullable: true
+        statut:
+          $ref: '#/components/schemas/StatutPublication'
+        disponibilite:
+          type: string
+          enum: [EN_STOCK, RUPTURE]
+        tendance:
           type: boolean
+          description: Mise en avant "Tendance" decidee par le Gerant
+        updatedAt:
+          type: string
+          format: date-time
+    JourSemaine:
+      type: string
+      enum: [LUNDI, MARDI, MERCREDI, JEUDI, VENDREDI, SAMEDI, DIMANCHE]
+    PlatDuJour:
+      type: object
+      required: [id, nom, prix, jour, statut]
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+        description:
+          type: string
+        prix:
+          type: number
+        photoUrl:
+          type: string
+          nullable: true
+        jour:
+          $ref: '#/components/schemas/JourSemaine'
+        statut:
+          $ref: '#/components/schemas/StatutPublication'
+        updatedAt:
+          type: string
+          format: date-time
+    AccompagnementCondiment:
+      type: object
+      required: [id, nom, prix, type, statut]
+      properties:
+        id:
+          type: string
+        nom:
+          type: string
+        prix:
+          type: number
+          description: 0 autorise (offert)
+        type:
+          type: string
+          enum: [ACCOMPAGNEMENT, CONDIMENT]
+        statut:
+          $ref: '#/components/schemas/StatutPublication'
+        updatedAt:
+          type: string
+          format: date-time
+    AnnonceSlide:
+      type: object
+      required: [id, titre]
+      properties:
+        id:
+          type: string
+        titre:
+          type: string
+        message:
+          type: string
+        imageUrl:
+          type: string
+          description: Vide = slide sans image
+    Annonce:
+      type: object
+      description: Chaine d'une ou plusieurs slides
+      required: [id, titre, slides, statut]
+      properties:
+        id:
+          type: string
+        titre:
+          type: string
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnnonceSlide'
+        statut:
+          $ref: '#/components/schemas/StatutPublication'
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+    Region:
+      type: object
+      required: [id, nom, active]
+      properties:
+        id:
+          type: string
+          description: Code region, ex. DAKAR
+        nom:
+          type: string
+        active:
+          type: boolean
+    Secteur:
+      type: object
+      description: Arrondissement officiel ou zone ajoutee par le Gerant
+      required: [id, regionId, nom, prixLivraison]
+      properties:
+        id:
+          type: string
+        regionId:
+          type: string
+        departement:
+          type: string
+        nom:
+          type: string
+        prixLivraison:
+          type: number
+        estOfficiel:
+          type: boolean
+        estMasque:
+          type: boolean
+    Canal:
+      type: string
+      description: APP = App Client ; COMPTOIR = saisie par le Vendeur
+      enum: [APP, COMPTOIR]
+    ModeCommande:
+      type: string
+      enum: [LIVRAISON, RETRAIT]
+    MoyenPaiement:
+      type: string
+      description: especes uniquement au comptoir (une commande APP est payee en ligne)
+      enum: [wave, orange-money, mixx-yas, carte, especes]
     LigneCommande:
       type: object
       required: [produitId, quantite]
       properties:
         produitId:
           type: string
+          description: Id d'un Produit, ou d'un PlatDuJour si type = PLAT_DU_JOUR
+        type:
+          type: string
+          enum: [PRODUIT, PLAT_DU_JOUR]
+          default: PRODUIT
+        nom:
+          type: string
+          description: Fige a la creation de la commande
+        prixUnitaire:
+          type: number
+          description: Fige a la creation (prix produit + prix accompagnement)
         quantite:
           type: integer
           minimum: 1
+        personnalisation:
+          type: string
+          nullable: true
+        accompagnementNom:
+          type: string
+          nullable: true
+        accompagnementPrix:
+          type: number
+          nullable: true
     CommandeCreation:
       type: object
-      required: [lignes, telephone, mode]
+      required: [canal, mode, lignes]
       properties:
+        canal:
+          $ref: '#/components/schemas/Canal'
+        mode:
+          $ref: '#/components/schemas/ModeCommande'
+        moyenPaiement:
+          $ref: '#/components/schemas/MoyenPaiement'
+        clientPrenom:
+          type: string
+          description: Requis si canal = APP
+        clientNom:
+          type: string
+          nullable: true
+        clientTelephone:
+          type: string
+          description: Requis si canal = APP. Format +221XXXXXXXXX
+        secteurId:
+          type: string
+          description: Requis si mode = LIVRAISON (fixe fraisLivraison)
+        adresseLivraison:
+          type: string
+          nullable: true
+          description: Nom du secteur choisi ; le livreur appelle le client pour la suite
+        note:
+          type: string
+          nullable: true
+          maxLength: 300
         lignes:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/LigneCommande'
-        telephone:
-          type: string
-        mode:
-          type: string
-          enum: [RETRAIT, LIVRAISON]
-        adresse:
-          type: string
-          description: Requis uniquement si mode = LIVRAISON
     StatutCommande:
       type: string
-      enum: [CREEE, PAYEE, EN_PREPARATION, PRETE, EN_LIVRAISON, LIVREE, RETIREE]
+      enum: [CREEE, PAYEE, EN_PREPARATION, PRETE, EN_LIVRAISON, LIVREE, RETIREE, ANNULEE]
     Commande:
       type: object
       properties:
         id:
           type: string
+          description: Numero de ticket affiche (Cuisine, Livreur, App Client) et encode dans le QR de livraison
         statut:
           $ref: '#/components/schemas/StatutCommande'
+        canal:
+          $ref: '#/components/schemas/Canal'
+        mode:
+          $ref: '#/components/schemas/ModeCommande'
+        moyenPaiement:
+          $ref: '#/components/schemas/MoyenPaiement'
+        statutPaiement:
+          type: string
+          enum: [en_attente, paye, echoue]
+        clientPrenom:
+          type: string
+          nullable: true
+        clientNom:
+          type: string
+          nullable: true
+        clientTelephone:
+          type: string
+          nullable: true
+        adresseLivraison:
+          type: string
+          nullable: true
+        regionLivraison:
+          type: string
+          nullable: true
+        secteurId:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
         lignes:
           type: array
           items:
             $ref: '#/components/schemas/LigneCommande'
+        sousTotal:
+          type: number
+        fraisLivraison:
+          type: number
         total:
           type: number
-          format: double
-        mode:
-          type: string
-          enum: [RETRAIT, LIVRAISON]
         creeLe:
           type: string
           format: date-time
