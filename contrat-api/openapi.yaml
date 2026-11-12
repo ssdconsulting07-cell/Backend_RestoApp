@@ -7,7 +7,7 @@ info:
     SenYummies Manager (interne, authentifie par role). Ce contrat est la source
     de verite entre les 3 equipes : toute modification passe par une revue du
     lead Backend avant merge.
-  version: "0.2.0"
+  version: "0.3.0"
 servers:
   - url: http://localhost:8080/api/v1
     description: Environnement de developpement local
@@ -890,6 +890,26 @@ components:
           type: boolean
         estMasque:
           type: boolean
+    PositionLivraison:
+      type: object
+      description: >
+        Position GPS partagee par le client a la commande (facultative,
+        mode LIVRAISON). Complete secteurId (qui fixe le prix) pour guider le
+        livreur jusqu'a la porte (itineraire dans l'espace Livreur).
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+        precision:
+          type: integer
+          description: Rayon d'incertitude en metres (coords.accuracy du navigateur)
+          nullable: true
     Canal:
       type: string
       description: APP = App Client ; COMPTOIR = saisie par le Vendeur
@@ -956,6 +976,11 @@ components:
           type: string
           nullable: true
           description: Nom du secteur choisi ; le livreur appelle le client pour la suite
+        positionLivraison:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/PositionLivraison'
         note:
           type: string
           nullable: true
@@ -1000,6 +1025,11 @@ components:
         regionLivraison:
           type: string
           nullable: true
+        positionLivraison:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/PositionLivraison'
         secteurId:
           type: string
           nullable: true
