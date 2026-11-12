@@ -4,6 +4,11 @@ Document de synthèse à l'intention de l'équipe Backend (`Backend_RestoApp`), 
 
 **Statut au 29/10/2026** : aucun backend réel n'existe encore. Les deux apps front tournent sur des données mock (`Manager_RestoApp` : modules JS en mémoire ; `Client_RestoApp` : `db.json` + `json-server`, et quelques données statiques en dur). Ce document décrit ce que le backend doit implémenter pour que les deux apps puissent s'y brancher sans modification de leur modèle de données actuel (côté Manager) ou avec un minimum d'adaptation documentée (côté Client).
 
+> **Mise à jour du 12/11/2026 — alignement Client ↔ Manager réalisé.**
+> Les écarts des sections 1 à 3 sont résolus côté fronts (Client_RestoApp PR #8, Manager_RestoApp PR #26) et `openapi.yaml` passe en **0.2.0** pour les décrire : catalogue (`/categories`, `/produits`, `/plats-du-jour`, `/accompagnements-condiments`, `/annonces`), zones (`/regions`, `/regions/{code}/secteurs`, champ `regionId`), commande complète (`canal`, `moyenPaiement`, `clientPrenom/clientNom/clientTelephone`, `secteurId`, `adresseLivraison`, `note`, lignes avec `nom`/`prixUnitaire` figés, `type` PRODUIT|PLAT_DU_JOUR, `accompagnementNom`), statut `ANNULEE`, rôle `VENDEUR`, historique `GET /commandes?clientTelephone=`.
+> **Erratum :** un plat du jour est rattaché à un **jour de la semaine** (`jour`), pas à un `moment` déjeuner/dîner (§1.4 corrigé).
+> **Reste à faire côté Backend :** implémenter ces contrôleurs (aucun n'existe encore hors Auth/StaffUser/Health) et les routes CRUD du Gérant. En attendant, l'App Client tourne sur un mock json-server qui reproduit à l'identique les données du Manager.
+
 ---
 
 ## 1. Entités et schéma de données
@@ -89,7 +94,7 @@ PlatDuJour
 ├─ nom
 ├─ prix
 ├─ photo               string | null     -- optionnel
-├─ moment              enum: dejeuner | diner
+├─ jour                enum: LUNDI | MARDI | MERCREDI | JEUDI | VENDREDI | SAMEDI | DIMANCHE   -- (erratum 12/11 : "moment" n'existe pas cote Manager)
 ├─ statut              enum: BROUILLON | ACTIF | ARCHIVE
 
 AccompagnementCondiment
