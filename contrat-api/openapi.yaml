@@ -886,6 +886,19 @@ components:
           type: string
         prixLivraison:
           type: number
+        centre:
+          type: object
+          nullable: true
+          description: >
+            Centre approximatif de l'arrondissement (reference Manager,
+            senegalZones.js). Sert a deduire la zone depuis la position GPS du
+            client (zone la plus proche dans un rayon de 8 km). Absent pour
+            les zones ajoutees a la main par le Gerant.
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
         estOfficiel:
           type: boolean
         estMasque:
