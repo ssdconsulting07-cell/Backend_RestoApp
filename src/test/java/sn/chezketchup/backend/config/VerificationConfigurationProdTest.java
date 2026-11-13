@@ -35,9 +35,16 @@ class VerificationConfigurationProdTest {
     }
 
     @Test
+    void refuseLesDonneesDeDemoEnProd() {
+        VerificationConfigurationProd verification = new VerificationConfigurationProd(
+                SECRET_SOLIDE, false, "", "classpath:db/migration,classpath:db/demo");
+        assertThatThrownBy(verification::verifier).hasMessageContaining("db/demo");
+    }
+
+    @Test
     void empecheLeDemarrage() {
         VerificationConfigurationProd verification =
-                new VerificationConfigurationProd(VerificationConfigurationProd.SECRET_JWT_DE_DEVELOPPEMENT, true, "");
+                new VerificationConfigurationProd(VerificationConfigurationProd.SECRET_JWT_DE_DEVELOPPEMENT, true, "", "classpath:db/migration");
         assertThatThrownBy(verification::verifier)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Configuration de production refusee");

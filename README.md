@@ -41,6 +41,18 @@ Paquets transverses (infrastructure partagée, pas une fonctionnalité en soi) :
 - `web/` — format d'erreur API standard (`ApiError`) et son gestionnaire global
 - `payment/` — abstraction de paiement (`PaymentProvider`), pour brancher PayDunya au départ puis Wave/Orange Money en direct plus tard sans tout réécrire
 
+## Base de données — migrations Flyway
+
+Le schéma est géré **uniquement** par Flyway (`src/main/resources/db/migration`) ; Hibernate se contente de le vérifier (`ddl-auto=validate`).
+
+- **Une migration par lot**, nommée `V<version>__<sujet>.sql`. Une migration fusionnée dans `develop` n'est **jamais modifiée** : on en ajoute une nouvelle.
+- **Déploiement sans coupure** : on ajoute (colonne nullable, nouvelle table) dans une version, on bascule le code, et on ne supprime l'ancien que dans une version **suivante**.
+- **Bases existantes** (créées par Hibernate avant Flyway) : reprises automatiquement en version 1 (`baseline-on-migrate`), sans perte. `V1` a été extraite de la vraie base de dev, pas écrite à la main.
+- `V1_1` ajoute les contraintes que le code déclarait mais qu'Hibernate n'avait jamais créées (identifiant unique et obligatoire, empreinte obligatoire). Si elle échoue sur une base de dev, c'est qu'un identifiant existe en double ou vide : corriger la ligne (`SELECT username, COUNT(*) FROM staff_users GROUP BY LOWER(username) HAVING COUNT(*) > 1`), puis relancer.
+- **Données de démonstration** : `src/main/resources/db/demo`, chargées **seulement en profil `dev`** (voir son README). Le profil `prod` refuse de démarrer si cet emplacement est configuré.
+
+**Tests** : `mvn verify` lance aussi les tests d'intégration (`*IT`) sur une vraie base MySQL 8 démarrée dans Docker (Testcontainers) — Docker doit tourner. `mvn test` ne lance que les tests unitaires.
+
 ## Le contrat d'API — comment les autres équipes y accèdent
 
 `contrat-api/openapi.yaml` est la source de vérité, versionnée ici avec le code. Les équipes Client et Manager n'ont **pas besoin du fichier en local** : elles consultent la documentation générée automatiquement (Swagger UI) une fois le backend lancé — `http://localhost:8080/api/v1/swagger-ui.html`. Toute modification du contrat passe par une revue du lead Backend avant merge.
