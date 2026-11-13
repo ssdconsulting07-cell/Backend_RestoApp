@@ -7,26 +7,15 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Base neuve : Flyway cree tout le schema, Hibernate le valide
  * (ddl-auto=validate, sinon le contexte ne demarre pas), et les contraintes
- * de V1.1 sont bien en base.
+ * sont bien en base.
  */
-@SpringBootTest(properties = "app.jwt.secret=secret-de-test-integration-assez-long-pour-hs256")
-@Testcontainers
-class MigrationsFlywayIT {
-
-    @Container
-    @ServiceConnection
-    static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0");
+class MigrationsFlywayIT extends IntegrationTest {
 
     @Autowired
     JdbcTemplate jdbc;
@@ -34,8 +23,16 @@ class MigrationsFlywayIT {
     @Test
     void toutesLesMigrationsSontAppliquees() {
         List<String> versions = jdbc.queryForList(
-                "SELECT version FROM flyway_schema_history WHERE success = 1 ORDER BY installed_rank", String.class);
-        assertThat(versions).containsExactly("1", "1.1");
+                "SELECT version FROM flyway_schema_history WHERE success = 1 AND version IS NOT NULL ORDER BY installed_rank",
+                String.class);
+        assertThat(versions).containsExactly("1", "1.1", "2");
+    }
+
+    @Test
+    void pasDeDonneesDeDemoHorsProfilDev() {
+        Integer nb = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE script LIKE 'R__demo%'", Integer.class);
+        assertThat(nb).isZero();
     }
 
     @Test
@@ -51,6 +48,19 @@ class MigrationsFlywayIT {
                 "INSERT INTO staff_users (active, password_hash, role, username, must_change_password) "
                         + "VALUES (1, NULL, 'CUISINE', 'sans.hash', 0)"))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void lesMontantsNegatifsSontRefusesParLaBase() {
+        jdbc.update("INSERT INTO categories (nom, statut, accompagnement_propose, version, cree_le, modifie_le) "
+                + "VALUES ('Categorie contrainte', 'BROUILLON', 0, 0, NOW(6), NOW(6))");
+        Long categorie = jdbc.queryForObject("SELECT id FROM categories WHERE nom = 'Categorie contrainte'", Long.class);
+        // Derniere barriere (les services valident avant) : MySQL refuse via la
+        // contrainte CHECK. Spring classe l'erreur MySQL 3819 en exception SQL
+        // generique, d'ou la verification sur le nom de la contrainte.
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO produits (nom, prix, categorie_id, statut, disponibilite, "
+                + "tendance, version, cree_le, modifie_le) VALUES ('Prix nul', 0, ?, 'BROUILLON', 'EN_STOCK', 0, 0, NOW(6), NOW(6))",
+                categorie)).hasMessageContaining("ck_produits_prix");
     }
 
     private static String insertion(String identifiant) {

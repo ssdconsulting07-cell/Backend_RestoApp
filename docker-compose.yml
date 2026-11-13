@@ -60,6 +60,9 @@ services:
       APP_CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5174
     ports:
       - "8080:8080"
+    volumes:
+      # Photos deposees par le Gerant (conservees entre deux redemarrages).
+      - senyummies-photos:/app/donnees/photos
     # Meme sonde que le HEALTHCHECK du Dockerfile : les fronts (ou un
     # compose global) peuvent attendre "service_healthy" avant de demarrer.
     healthcheck:
@@ -71,3 +74,4 @@ services:
 
 volumes:
   senyummies-mysql-data:
+  senyummies-photos:

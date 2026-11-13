@@ -10,7 +10,11 @@ RUN mvn -q package -DskipTests
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 # Utilisateur dedie, sans privileges : l'image de base tourne en root.
-RUN groupadd --system senyummies && useradd --system --gid senyummies --no-create-home senyummies
+RUN groupadd --system senyummies && useradd --system --gid senyummies --no-create-home senyummies \
+ && mkdir -p /app/donnees/photos && chown -R senyummies:senyummies /app/donnees
+# Photos deposees par le Gerant (PhotoStorage disque) : monter un volume ici.
+ENV APP_PHOTOS_DOSSIER=/app/donnees/photos
+VOLUME /app/donnees/photos
 COPY --from=build --chown=senyummies:senyummies /app/target/backend-*.jar app.jar
 USER senyummies
 EXPOSE 8080

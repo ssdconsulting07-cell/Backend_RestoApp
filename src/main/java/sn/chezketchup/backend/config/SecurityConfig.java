@@ -86,7 +86,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/first-login-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/produits/**").permitAll()
+                        // Lecture publique du catalogue, des annonces, des zones et des
+                        // photos (App Client sans compte). Le filtrage "publie seulement"
+                        // est fait par les services (Visibilite), pas ici.
+                        .requestMatchers(HttpMethod.GET,
+                                "/categories", "/produits", "/produits/*", "/plats-du-jour",
+                                "/accompagnements-condiments", "/annonces", "/regions",
+                                "/regions/*/secteurs", "/photos/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/commandes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/commandes/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/paiements/**").permitAll()
