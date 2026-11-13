@@ -34,3 +34,27 @@
 ### Codes d'erreur introduits (`ApiError.code`)
 
 `VERSION_CONFLICT`, `TRANSITION_INTERDITE`, `CATEGORIE_NON_VIDE`, `CATEGORIE_ARCHIVEE`, `CATEGORIE_INCONNUE`, `CATEGORIE_INVALIDE`, `NOM_DEJA_UTILISE`, `SECTEUR_OFFICIEL`, `SECTEUR_EXISTANT`, `FORMAT_IMAGE_REFUSE`, `IMAGE_ILLISIBLE`, `IMAGE_TROP_GRANDE`, `FICHIER_VIDE`, `FICHIER_TROP_VOLUMINEUX`, `PAYLOAD_TOO_LARGE`, `IDENTIFIANT_INVALIDE`, `INVALID_BODY`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLIT_DONNEES`.
+
+## Lot 3 : commandes
+
+### Compatibles avec l'App Client actuelle (verifie : parcours complet de l'App Client contre le vrai backend)
+
+| # | Ecart | Pourquoi | Impact fronts |
+|---|---|---|---|
+| 3.1 | **Montants entiers** (`prixUnitaire`, `sousTotal`, `fraisLivraison`, `total`, `montantRecu`, `monnaieRendue`). | Voir 2.1. | Aucun. |
+| 3.2 | **`LigneCommande.accompagnementId`** (nouveau). En attendant, l'accompagnement est retrouve **par son nom** parmi les accompagnements publies. | Le serveur doit pouvoir verifier le prix de l'accompagnement. | Lot 4 : envoyer `accompagnementId` (le panier du Client l'a deja). |
+| 3.3 | **Commande APP** : creee en `CREEE` / `en_attente`, puis **payee sur confirmation du serveur** (simulateur : immediat, donc la reponse est deja `PAYEE`). Le contrat disait « paiement avant creation », incompatible avec `/paiements/init` qui attend un `commandeId`. `statut` et `statutPaiement` envoyes par le client sont **ignores**. | Seul le serveur constate un paiement. | Aucun en mode simule. Avec un vrai prestataire : suivre `paiement.redirectUrl` (lot 4). |
+| 3.4 | **Reponse de creation** : la commande + `jetonSuivi` (secret, renvoye **une seule fois**) + `paiement {redirectUrl, simule}`. | Suivi securise (3.5). | Lot 4 : conserver le jeton de chaque commande sur l'appareil. |
+| 3.5 | **Suivi client** : `GET /commandes/{id}` sans en-tete **`X-Jeton-Suivi`** (ou jeton faux) -> **404**. `GET /commandes?clientTelephone=` -> **vue reduite** : ni nom, ni position GPS, ni note (le numero fourni est renvoye). | Les numeros de commande sont sequentiels et un numero de telephone n'est pas un secret : sans jeton, n'importe qui lirait les commandes (et la position) des autres. | Lot 4 : envoyer `X-Jeton-Suivi` pour le detail complet. |
+| 3.6 | **En-tete `Idempotency-Key`** (facultatif pour l'instant) : meme cle + meme corps -> premiere reponse rejouee (`Idempotency-Replayed: true`) ; meme cle + autre corps -> 409 `IDEMPOTENCE_CONFLIT` ; envoi simultane en cours -> 409 `REQUETE_EN_COURS`. | Une commande renvoyee apres une coupure n'est creee (et payee) qu'une fois. | Lot 4 : une cle (UUID) par tentative de commande, reutilisee lors d'un renvoi. Puis l'en-tete deviendra obligatoire. |
+| 3.7 | **Valeurs du client seulement controlees** : `prixUnitaire`, `accompagnementPrix`, `sousTotal`, `fraisLivraison`, `total` sont facultatifs ; s'ils sont envoyes et differents du calcul -> 400 `PRIX_INCOHERENT` / `TOTAL_INCOHERENT` avec le champ (`lignes[0].prixUnitaire`...). `adresseLivraison` et `regionLivraison` sont fixees par le serveur depuis `secteurId`. | Aucun prix venant du client n'est jamais repris. | Aucun. |
+| 3.8 | **Vente comptoir** (`canal: COMPTOIR`, role VENDEUR, mode RETRAIT) : `montantRecu` (especes) -> `monnaieRendue` calculee par le serveur ; statut `PAYEE` directement. Pas d'entite « Vente » separee. | Une vente comptoir est une commande. | Lot 4 : la caisse du Manager appelle `POST /commandes`. |
+| 3.9 | **Champs ajoutes a `Commande`** : `historique [{statut, le, par, role}]` (`par`/`role` pour le staff seulement), `version`, `montantRecu`, `monnaieRendue`, `remboursementASignaler` (commande payee puis annulee). | Tracabilite et compensation. | Aucun. |
+| 3.10 | **`GET /commandes` staff** : chaque role ne voit que sa file (Cuisine : commandes payees ; Livreur : livraisons PRETE / EN_LIVRAISON / LIVREE ; Vendeur : commandes a emporter ; Manager / Gerant : tout). Parametres `statut`, `canal`, `depuis` (48 h par defaut, 31 jours maximum). Donnees personnelles par role : telephone pour Cuisine, Livreur et Vendeur ; position GPS pour le Livreur seulement. | Moindre privilege. | Aucun. |
+| 3.11 | **`PATCH /commandes/{id}/statut`** : `version` facultative (409 `VERSION_CONFLICT`) ; deja applique par un autre poste -> 409 `STATUT_DEJA_APPLIQUE` ; hors table -> 403 `TRANSITION_INTERDITE` ; commande hors de la file du role -> 404. | Concurrence Cuisine / Livreur. | Lot 4 : traiter le 409 (« deja pris en charge »). |
+| 3.12 | **Temps reel** : `GET /temps-reel/commandes` (SSE, staff), evenement `commande` `{type: COMMANDE_PAYEE \| STATUT_CHANGE, commande}` filtre par role, `id` = numero d'evenement (reprise via `Last-Event-ID`). | Absent du contrat. | Lot 4 : abonnement du Manager (fetch en streaming + bloc nginx). |
+| 3.13 | **429 `TROP_DE_REQUETES`** + `Retry-After` sur `POST /commandes` (10/min/IP), suivi sans jeton (30/min/IP), `POST /auth/login` (10/min/IP). | Abus, enumeration de numeros, essais de mots de passe. | Afficher le message ; reessayer apres le delai. |
+
+### Codes d'erreur introduits
+
+`PRIX_INCOHERENT`, `TOTAL_INCOHERENT`, `PRODUIT_INDISPONIBLE`, `PLAT_INDISPONIBLE`, `ACCOMPAGNEMENT_NON_PROPOSE`, `ZONE_REQUISE`, `ZONE_INDISPONIBLE`, `PRENOM_REQUIS`, `TELEPHONE_INVALIDE`, `TELEPHONE_REQUIS`, `MOYEN_PAIEMENT_INVALIDE`, `MOYEN_PAIEMENT_REQUIS`, `MODE_INVALIDE`, `MONTANT_INSUFFISANT`, `IDEMPOTENCE_CONFLIT`, `IDEMPOTENCE_CLE_INVALIDE`, `REQUETE_EN_COURS`, `STATUT_DEJA_APPLIQUE`, `TRANSITION_INTERDITE`, `TROP_DE_REQUETES`.
