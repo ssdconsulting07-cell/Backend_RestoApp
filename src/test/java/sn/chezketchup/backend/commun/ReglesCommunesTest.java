@@ -52,6 +52,9 @@ class ReglesCommunesTest {
         assertThat(UrlImageValidator.estValide("")).isTrue();
         assertThat(UrlImageValidator.estValide("https://images.unsplash.com/photo-1?w=800")).isTrue();
         assertThat(UrlImageValidator.estValide("/api/v1/photos/0f8fad5b-d9cb-469f-a165-70867728950e.jpg")).isTrue();
+        assertThat(UrlImageValidator.estValide("/images/produits/jus-de-bissap.jpg")).as("image fournie avec les fronts").isTrue();
+        assertThat(UrlImageValidator.estValide("/images/../../etc/passwd.jpg")).isFalse();
+        assertThat(UrlImageValidator.estValide("/images/produits/a.svg")).as("SVG exclu (peut contenir du script)").isFalse();
         assertThat(UrlImageValidator.estValide("javascript:alert(1)")).isFalse();
         assertThat(UrlImageValidator.estValide("data:image/png;base64,AAAA")).isFalse();
         assertThat(UrlImageValidator.estValide("http://non-chiffre.example/a.jpg")).isFalse();
