@@ -7,6 +7,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import sn.chezketchup.backend.commun.audit.JournalActions;
+import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.security.Role;
 
 @Service
@@ -15,15 +17,18 @@ public class StaffUserManagementService {
     private final StaffUserRepository staffUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    private final JournalActions journal;
 
     public StaffUserManagementService(
             StaffUserRepository staffUserRepository,
             PasswordEncoder passwordEncoder,
-            TemporaryPasswordGenerator temporaryPasswordGenerator
+            TemporaryPasswordGenerator temporaryPasswordGenerator,
+            JournalActions journal
     ) {
         this.staffUserRepository = staffUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.temporaryPasswordGenerator = temporaryPasswordGenerator;
+        this.journal = journal;
     }
 
     @Transactional(readOnly = true)
@@ -37,7 +42,10 @@ public class StaffUserManagementService {
     public TemporaryPasswordResponse create(StaffUserCreateRequest request) {
         String username = normalizeUsername(request.username());
         ensureUsernameAvailable(username, null);
-        if (request.role() == Role.MANAGER || staffUserRepository.existsByRole(Role.MANAGER)) {
+        // Le compte Manager est unique et cree par le systeme : on refuse de
+        // creer un MANAGER ici. (Avant : "|| existsByRole(MANAGER)" refusait
+        // TOUTE creation de compte des qu'un Manager existait, donc toujours.)
+        if (request.role() == Role.MANAGER) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Le compte Manager est unique et gere par le systeme.");
         }
 
@@ -54,6 +62,8 @@ public class StaffUserManagementService {
         user.setCni(request.cni().trim());
         user.setPhone(request.phone().trim());
         user = staffUserRepository.save(user);
+        journal.enregistrer(Domaine.PERSONNEL, "CREATION_COMPTE", String.valueOf(user.getId()),
+                "a créé le compte " + libelleRole(user.getRole()) + " de " + nom(user));
         return new TemporaryPasswordResponse(StaffUserResponse.from(user), temporaryPassword);
     }
 
@@ -78,6 +88,7 @@ public class StaffUserManagementService {
         if (request.address() != null) user.setAddress(request.address().trim());
         if (request.cni() != null) user.setCni(request.cni().trim());
         if (request.phone() != null) user.setPhone(request.phone().trim());
+        journal.enregistrer(Domaine.PERSONNEL, "MODIFICATION_COMPTE", String.valueOf(id), "a modifié le compte de " + nom(user));
         return StaffUserResponse.from(staffUserRepository.save(user));
     }
 
@@ -89,6 +100,7 @@ public class StaffUserManagementService {
         ensureGerantRemains(user, user.getRole(), false);
         user.setActive(false);
         staffUserRepository.save(user);
+        journal.enregistrer(Domaine.PERSONNEL, "DESACTIVATION_COMPTE", String.valueOf(id), "a désactivé le compte de " + nom(user));
     }
 
     @Transactional
@@ -102,6 +114,8 @@ public class StaffUserManagementService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Vous ne pouvez pas supprimer votre propre compte.");
         }
         staffUserRepository.delete(user);
+        journal.enregistrer(Domaine.PERSONNEL, "SUPPRESSION_COMPTE", String.valueOf(id),
+                "a supprimé définitivement le compte de " + nom(user));
     }
 
     @Transactional
@@ -113,7 +127,25 @@ public class StaffUserManagementService {
         user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
         user.setMustChangePassword(true);
         StaffUser saved = staffUserRepository.save(user);
+        journal.enregistrer(Domaine.PERSONNEL, "MOT_DE_PASSE_TEMPORAIRE", String.valueOf(id),
+                "a généré un mot de passe temporaire pour " + nom(user));
         return new TemporaryPasswordResponse(StaffUserResponse.from(saved), temporaryPassword);
+    }
+
+    /** Nom affiche dans le journal (jamais le mot de passe, ni la CNI, ni le telephone). */
+    private static String nom(StaffUser u) {
+        String n = ((u.getFirstName() == null ? "" : u.getFirstName()) + " " + (u.getLastName() == null ? "" : u.getLastName())).trim();
+        return n.isEmpty() ? u.getUsername() : n;
+    }
+
+    private static String libelleRole(Role role) {
+        return switch (role) {
+            case CUISINE -> "cuisine";
+            case GERANT -> "gérant";
+            case MANAGER -> "manager";
+            case LIVREUR -> "livreur";
+            case VENDEUR -> "vendeur";
+        };
     }
 
     private StaffUser getUser(long id) {

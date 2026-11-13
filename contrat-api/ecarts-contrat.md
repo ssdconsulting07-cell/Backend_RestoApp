@@ -71,3 +71,18 @@
 ### Codes d'erreur introduits
 
 `SIGNATURE_INVALIDE`, `PAIEMENT_DEJA_REGLE`, `COMMANDE_ANNULEE`.
+
+## Lot 5 : journal d'audit et statistiques
+
+| # | Ecart | Pourquoi | Impact fronts |
+|---|---|---|---|
+| 5.1 | **`GET /audit`** (MANAGER) : `?role=&domaine=&du=&au=&page=&taille=` (7 derniers jours par defaut, 92 jours maximum, 200 par page). Reponse `{entrees: [{id, createdAt, acteur {identifiant, nom, role}, domaine, code, cibleId, action}], total, page, taille}`. `action` = la phrase affichee par le Manager. | Absent du contrat. Forme calquee sur `auditData.js` du Manager. | Lot 4 : remplacer `auditData.js` par cette route. |
+| 5.2 | **`GET /audit/export.csv`** (MANAGER) : memes filtres ; CSV UTF-8 avec BOM, separateur `;`, colonnes *Date ; Employe ; Identifiant ; Role ; Type ; Description* ; cellules commencant par `= + - @` neutralisees (injection de formules Excel). L'export est lui-meme trace. | Absent du contrat. | Lot 4 : le bouton d'export du Manager peut appeler cette route. |
+| 5.3 | **Journal ecrit dans la transaction de l'action** (une action refusee ne laisse aucune trace). Acteurs non humains : `client`, `systeme`, `prestataire`. Desormais traces aussi : creation, modification, desactivation, suppression des comptes du personnel, mots de passe temporaires. Jamais de CNI, telephone, mot de passe ni donnee personnelle de client. | Tracabilite complete. | Aucun. |
+| 5.4 | **`GET /statistiques/tableau-de-bord`** (MANAGER, GERANT) : `chiffreAffaires {jour, semaine, mois, septDerniersJours}`, `commandesDuJour {total, encaissees, parStatut, panierMoyen}`, `parCanalDuJour`. | Memes chiffres que `ManagerDashboard.jsx` (`financeData.js`, `commandesData.js`). | Lot 4 : brancher le tableau de bord. |
+| 5.5 | **`GET /statistiques/chiffre-affaires`**, **`/top-produits`**, **`/commandes-par-statut`** (MANAGER, GERANT), **`/ventes-comptoir`** (MANAGER, GERANT, et VENDEUR pour ses propres ventes). Periode `du`/`au` (7 jours par defaut, un an maximum). | Absent du contrat. | Lot 4 : historique des ventes du Vendeur. |
+| 5.6 | **Definition du chiffre d'affaires** : commandes **payees et non annulees** (une commande payee puis annulee = remboursement, pas du CA). | Meme regle que `commandesEncaissees()` du Manager. | Aucun. |
+
+### Correction d'un bug existant
+
+`POST /staff-users` refusait **toute** creation de compte des qu'un compte MANAGER existait (`role == MANAGER || existsByRole(MANAGER)`) : comme le compte `manager` existe toujours, le Gerant ne pouvait creer aucun compte. Seule la creation d'un **MANAGER** est desormais refusee (compte unique, gere par le systeme).

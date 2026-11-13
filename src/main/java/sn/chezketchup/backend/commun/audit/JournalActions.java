@@ -1,12 +1,9 @@
 package sn.chezketchup.backend.commun.audit;
 
 /**
- * Port du journal d'audit : chaque action d'ecriture du staff y est
- * consignee, dans la meme transaction que l'action (atomicite).
- *
- * Lot 2 : implementation provisoire qui journalise dans les logs
- * ({@link JournalActionsLogs}). Lot 5 : implementation en base (AuditEvent),
- * sans toucher aux services qui l'appellent.
+ * Port du journal d'audit : chaque action d'ecriture y est consignee, dans
+ * la meme transaction que l'action (atomicite). Implementation :
+ * {@code audit.infrastructure.JournalActionsBase} (table audit_evenements).
  *
  * Le message est la phrase lisible affichee dans le Journal d'audit du
  * Manager (« a publie le produit Thieboudienne »). Jamais de donnee
@@ -14,7 +11,11 @@ package sn.chezketchup.backend.commun.audit;
  */
 public interface JournalActions {
 
+    /** Action de l'utilisateur courant (membre du staff, ou "client" / "systeme" s'il n'y en a pas). */
     void enregistrer(Domaine domaine, String action, String cibleId, String message);
+
+    /** Action d'un acteur non humain explicite : "systeme" (taches planifiees), "prestataire" (webhook). */
+    void enregistrerEnTantQue(String acteur, Domaine domaine, String action, String cibleId, String message);
 
     enum Domaine {
         COMMANDE, PRODUIT, CATEGORIE, ANNONCE, PERSONNEL, ZONE, PAIEMENT

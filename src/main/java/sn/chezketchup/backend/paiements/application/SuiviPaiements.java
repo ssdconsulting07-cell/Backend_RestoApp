@@ -131,7 +131,7 @@ public class SuiviPaiements {
         Commande c = commandes.verrouiller(p.getCommandeId()).orElseThrow();
         if (n.montant() != c.getTotal()) {
             // Jamais de confirmation sur un montant different de celui de la commande.
-            journal.enregistrer(Domaine.PAIEMENT, "ANOMALIE", String.valueOf(c.getId()), "paiement de " + fcfa(n.montant())
+            journal.enregistrerEnTantQue("prestataire", Domaine.PAIEMENT, "ANOMALIE", String.valueOf(c.getId()), "paiement de " + fcfa(n.montant())
                     + " notifié pour la commande #" + c.getId() + " (attendu : " + fcfa(c.getTotal()) + ") : ignoré");
             return Resultat.MONTANT_INCOHERENT;
         }
@@ -140,16 +140,16 @@ public class SuiviPaiements {
             if (c.getStatut() == StatutCommande.CREEE) {
                 c.confirmerPaiement("prestataire", maintenant);
                 evenements.save(new EvenementSortant(EvenementSortant.Type.COMMANDE_PAYEE, c.getId(), maintenant));
-                journal.enregistrer(Domaine.PAIEMENT, "CONFIRME", String.valueOf(c.getId()),
+                journal.enregistrerEnTantQue("prestataire", Domaine.PAIEMENT, "CONFIRME", String.valueOf(c.getId()),
                         "paiement confirmé pour la commande #" + c.getId() + " (" + fcfa(c.getTotal()) + ")");
             } else if (c.paiementRecuApresAnnulation()) {
-                journal.enregistrer(Domaine.PAIEMENT, "TARDIF", String.valueOf(c.getId()),
+                journal.enregistrerEnTantQue("prestataire", Domaine.PAIEMENT, "TARDIF", String.valueOf(c.getId()),
                         "paiement reçu après l'annulation de la commande #" + c.getId()
                                 + " — remboursement de " + fcfa(c.getTotal()) + " à signaler");
             }
         } else if (n.statut() == StatutPaiement.ECHOUE && c.getStatut() == StatutCommande.CREEE) {
             c.echecPaiement("prestataire", maintenant);
-            journal.enregistrer(Domaine.PAIEMENT, "ECHOUE", String.valueOf(c.getId()),
+            journal.enregistrerEnTantQue("prestataire", Domaine.PAIEMENT, "ECHOUE", String.valueOf(c.getId()),
                     "paiement refusé : commande #" + c.getId() + " annulée");
         }
         return Resultat.TRAITEE;
@@ -169,7 +169,7 @@ public class SuiviPaiements {
             Commande c = commandes.verrouiller(id).orElse(null);
             if (c != null && c.getStatut() == StatutCommande.CREEE) {
                 c.echecPaiement("systeme", maintenant);
-                journal.enregistrer(Domaine.PAIEMENT, "EXPIRE", String.valueOf(id), "commande #" + id
+                journal.enregistrerEnTantQue("systeme", Domaine.PAIEMENT, "EXPIRE", String.valueOf(id), "commande #" + id
                         + " annulée : paiement non reçu sous " + delaiExpiration.toMinutes() + " min");
                 annulees++;
             }
