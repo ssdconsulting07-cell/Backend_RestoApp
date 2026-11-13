@@ -1,0 +1,5 @@
+# Regles ZAP du scan API (DAST, .github/workflows/securite.yml).
+# Format : id<TAB>IGNORE|WARN|FAIL<TAB>justification. Par defaut tout avertissement fait echouer le job.
+100001	IGNORE	(Content-Type inattendu : reponses JSON 401/404 de l API, attendues)
+10116	IGNORE	(Version de ZAP : image figee volontairement)
+90004	IGNORE	(Isolation Spectre : API JSON sans contenu HTML)

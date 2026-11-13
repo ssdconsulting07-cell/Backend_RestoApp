@@ -92,6 +92,19 @@ class AuthServiceTest {
     }
 
     @Test
+    void checksPasswordEvenForUnknownUserSoTimingDoesNotRevealAccounts() {
+        when(staffUserRepository.findByUsernameIgnoreCase("unknown")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("dummy-hash");
+
+        assertThrows(BadCredentialsException.class, () -> authService.login("unknown", "password"));
+        assertThrows(BadCredentialsException.class, () -> authService.login("unknown", "password"));
+
+        // BCrypt toujours execute (meme cout qu'un vrai compte) ; hash factice calcule une seule fois.
+        verify(passwordEncoder, org.mockito.Mockito.times(2)).matches("password", "dummy-hash");
+        verify(passwordEncoder, org.mockito.Mockito.times(1)).encode(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     void rejectsWrongPasswordWithGenericAuthenticationError() {
         StaffUser user = new StaffUser("manager", "encoded-password", Role.MANAGER);
         when(staffUserRepository.findByUsernameIgnoreCase("manager")).thenReturn(Optional.of(user));
