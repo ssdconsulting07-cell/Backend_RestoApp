@@ -13,7 +13,8 @@ import jakarta.annotation.PostConstruct;
 /**
  * Refuse de demarrer en profil prod avec une configuration dangereuse :
  * secret JWT par defaut (connu de tous, puisqu'il est dans le depot) ou trop
- * court, comptes de demonstration actives, CORS ouvert a tous. Mieux vaut
+ * court, comptes de demonstration actives, CORS ouvert a tous, donnees de
+ * demonstration (db/demo) chargees par Flyway. Mieux vaut
  * un conteneur qui ne demarre pas qu'une API en production qu'on peut
  * contourner en forgeant un jeton.
  */
@@ -28,20 +29,26 @@ public class VerificationConfigurationProd {
     private final String secretJwt;
     private final boolean seedActive;
     private final String originesCors;
+    private final String emplacementsFlyway;
 
     public VerificationConfigurationProd(
             @Value("${app.jwt.secret}") String secretJwt,
             @Value("${app.auth.seed.enabled:false}") boolean seedActive,
-            @Value("${app.cors.allowed-origins:}") String originesCors
+            @Value("${app.cors.allowed-origins:}") String originesCors,
+            @Value("${spring.flyway.locations:}") String emplacementsFlyway
     ) {
         this.secretJwt = secretJwt;
         this.seedActive = seedActive;
         this.originesCors = originesCors;
+        this.emplacementsFlyway = emplacementsFlyway;
     }
 
     @PostConstruct
     void verifier() {
         List<String> problemes = problemes(secretJwt, seedActive, originesCors);
+        if (emplacementsFlyway != null && emplacementsFlyway.contains("db/demo")) {
+            problemes.add("spring.flyway.locations ne doit pas inclure db/demo (donnees de demonstration)");
+        }
         if (!problemes.isEmpty()) {
             throw new IllegalStateException(
                     "Configuration de production refusee : " + String.join(" ; ", problemes));
