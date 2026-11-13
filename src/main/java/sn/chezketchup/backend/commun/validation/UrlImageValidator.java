@@ -11,6 +11,13 @@ public class UrlImageValidator implements ConstraintValidator<UrlImage, String> 
     static final int LONGUEUR_MAX = 500;
     private static final Pattern PHOTO_LOCALE =
             Pattern.compile("^/api/v1/photos/[a-f0-9-]{36}\\.(jpg|png)$");
+    /**
+     * Image fournie avec les fronts (dossier public/images des apps Client et
+     * Manager, ex. /images/produits/jus-de-bissap.jpg). Pas de point hors de
+     * l'extension : aucun "..", aucune traversee de chemin.
+     */
+    private static final Pattern IMAGE_DES_FRONTS =
+            Pattern.compile("^/images/[a-z0-9][a-z0-9/_-]*\\.(jpg|jpeg|png|webp)$");
 
     @Override
     public boolean isValid(String valeur, ConstraintValidatorContext contexte) {
@@ -24,7 +31,7 @@ public class UrlImageValidator implements ConstraintValidator<UrlImage, String> 
         if (valeur.length() > LONGUEUR_MAX) {
             return false;
         }
-        if (PHOTO_LOCALE.matcher(valeur).matches()) {
+        if (PHOTO_LOCALE.matcher(valeur).matches() || IMAGE_DES_FRONTS.matcher(valeur).matches()) {
             return true;
         }
         try {
