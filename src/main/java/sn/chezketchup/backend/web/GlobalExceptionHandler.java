@@ -2,6 +2,8 @@ package sn.chezketchup.backend.web;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +20,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import sn.chezketchup.backend.commun.erreurs.ConflitException;
+import sn.chezketchup.backend.commun.erreurs.RequeteInvalideException;
+import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
 import org.springframework.validation.FieldError;
 
 /**
@@ -77,6 +84,44 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleRequeteMvc(Exception ex) {
         HttpStatusCode statut = ex instanceof ErrorResponse er ? er.getStatusCode() : HttpStatus.BAD_REQUEST;
         return reponsePourStatut(statut);
+    }
+
+    // --- Erreurs metier (lots 2+) ---------------------------------------------
+
+    @ExceptionHandler(ConflitException.class)
+    public ResponseEntity<ApiError> handleConflit(ConflitException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of(ex.getCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(RessourceIntrouvableException.class)
+    public ResponseEntity<ApiError> handleIntrouvable(RessourceIntrouvableException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiError.of("NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RequeteInvalideException.class)
+    public ResponseEntity<ApiError> handleRequeteInvalide(RequeteInvalideException ex) {
+        return ResponseEntity.badRequest().body(ApiError.of(ex.getCode(), ex.getMessage(), ex.getChamp()));
+    }
+
+    /** Deux modifications simultanees de la meme fiche : la seconde est refusee, jamais ecrasee. */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleVerrouOptimiste(OptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("VERSION_CONFLICT",
+                "Cette fiche a ete modifiee entre-temps. Rechargez-la avant d'enregistrer."));
+    }
+
+    /** Contrainte de base (unicite...) violee malgre les controles du service (acces concurrent). */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleIntegrite(DataIntegrityViolationException ex) {
+        LOG.warn("Contrainte de base violee : {}", ex.getMostSpecificCause().getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("CONFLIT_DONNEES",
+                "Operation impossible : elle entre en conflit avec des donnees existantes."));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleTropVolumineux(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiError.of("PAYLOAD_TOO_LARGE", "Fichier trop volumineux (2 Mo maximum)."));
     }
 
     /** Corps JSON illisible ou mal forme : 400, pas 500. */

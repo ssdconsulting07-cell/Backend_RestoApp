@@ -12,4 +12,18 @@ Emplacement Flyway charge **seulement** avec le profil `dev`
 
 Les comptes du personnel de dev restent crees par `StaffUserSeed`
 (mots de passe fournis par les variables `APP_AUTH_SEED_*`, jamais en SQL).
-Le catalogue, les zones et les annonces de demo arrivent avec le lot 2.
+
+## Fichiers (generes, ne pas modifier a la main)
+
+| Fichier | Contenu |
+|---|---|
+| `R__demo_catalogue.sql` | 6 categories, 27 produits, 9 plats du jour, 11 accompagnements et condiments |
+| `R__demo_annonces.sql` | 5 annonces (chaines de slides) |
+| `R__demo_zones.sql` | 14 regions, 125 arrondissements officiels (Dakar ouverte, prix de demo) |
+
+Regeneration, quand les donnees de demo du Manager changent :
+
+    node scripts/demo/generer-donnees-demo.mjs [chemin/vers/Manager_RestoApp]
+
+Attention : une donnee de demo modifiee dans le Manager en dev sera
+ecrasee au prochain changement de ces fichiers (c'est leur role).

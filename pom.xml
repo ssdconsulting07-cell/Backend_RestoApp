@@ -73,6 +73,17 @@
       <artifactId>mysql-connector-j</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- Cache memoire des lectures publiques du catalogue (lot 2). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
+    <!-- Lecture des photos WebP (le JDK ne lit que JPEG/PNG/GIF/BMP). -->
+    <dependency>
+      <groupId>com.twelvemonkeys.imageio</groupId>
+      <artifactId>imageio-webp</artifactId>
+      <version>3.15.3</version>
+    </dependency>
     <!-- Migrations de schema (lot 1). Spring Boot 4 : l'auto-configuration
          Flyway est dans son propre starter. -->
     <dependency>
