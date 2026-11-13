@@ -25,7 +25,7 @@ class MigrationsFlywayIT extends IntegrationTest {
         List<String> versions = jdbc.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = 1 AND version IS NOT NULL ORDER BY installed_rank",
                 String.class);
-        assertThat(versions).containsExactly("1", "1.1", "2", "3", "4", "5");
+        assertThat(versions).containsExactly("1", "1.1", "2", "3", "4", "5", "6");
     }
 
     @Test
@@ -33,6 +33,15 @@ class MigrationsFlywayIT extends IntegrationTest {
         Integer nb = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE script LIKE 'R__demo%'", Integer.class);
         assertThat(nb).isZero();
+    }
+
+    @Test
+    void zonesOfficiellesLivreesFermeesPourLaProduction() {
+        // Donnees de reference (V6), presentes meme sans le profil dev : toutes les
+        // regions fermees tant que le Gerant ne les ouvre pas.
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM regions WHERE code IN ('DAKAR', 'THIES', 'KOLDA')", Integer.class)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM secteurs WHERE est_officiel = 1 AND region_code = 'DAKAR'", Integer.class)).isPositive();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM regions WHERE code = 'DAKAR' AND active = 0", Integer.class)).isEqualTo(1);
     }
 
     @Test

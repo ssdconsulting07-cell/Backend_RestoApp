@@ -4,34 +4,49 @@ Pour l'équipe (backend et fronts). État au 13 novembre 2026.
 
 ## Où on en est
 
-Le backend de `develop` couvre les lots 1, 2, 3, paiement (simulé) et 5 :
+Tout ce qui ne dépend pas d'une décision du client est développé et branché :
 
-- migrations Flyway et données de démo (profil dev) ;
-- catalogue, annonces, zones, photos ;
-- commandes, suivi client sécurisé, transitions par rôle ;
-- temps réel SSE ;
-- paiement simulé (init, webhook signé, expiration) ;
-- journal d'audit ;
-- statistiques.
-
-`mvn -B verify` est vert (44 tests unitaires, 62 tests d'intégration sur MySQL réel). L'App Client actuelle passe une
-commande de bout en bout contre ce backend, sans modification.
+- **Backend** :
+  - migrations Flyway ;
+  - catalogue, annonces, zones (zones officielles présentes dans toute base), photos ;
+  - commandes, suivi client sécurisé, transitions par rôle ;
+  - temps réel SSE ;
+  - paiement **simulé** (init, webhook signé, expiration) ;
+  - journal d'audit, statistiques ;
+  - premier compte Manager en production.
+- **App Client** branchée sur le backend :
+  - idempotence ;
+  - statut décidé par le serveur ;
+  - jeton de suivi ;
+  - paiement par redirection (plus aucun formulaire de carte).
+- **SenYummies Manager** branché sur le backend :
+  - menu, plats du jour, accompagnements et annonces, avec envoi des photos ;
+  - zones ;
+  - temps réel en Cuisine, Livreur et Retraits ;
+  - ventes comptoir ;
+  - audit, statistiques.
+- **Déploiement** :
+  - compose de démonstration (`deploiement/demo`) ;
+  - compose de **production** (`deploiement/prod`) : Caddy HTTPS, MySQL sauvegardé chaque nuit.
+- **Qualité et sécurité** : CI verte sur les trois dépôts. Elle couvre :
+  - lint et tests ;
+  - audit des dépendances ;
+  - SAST : CodeQL, Semgrep, Trivy ;
+  - DAST : ZAP sur l'API.
 
 Documents liés :
 
 - [`tableau-10-points.md`](tableau-10-points.md) : chaque fonctionnalité face aux 10 points de vigilance ;
 - [`../contrat-api/ecarts-contrat.md`](../contrat-api/ecarts-contrat.md) : ce qui diffère d'`openapi.yaml`, à faire valider par le lead Backend ;
-- [`../deploiement/demo/README.md`](../deploiement/demo/README.md) : toute l'application en une commande.
+- [`../contrat-api/openapi-implemente.json`](../contrat-api/openapi-implemente.json) : description OpenAPI **générée par le backend** (exacte par construction), à comparer au contrat. Régénérer avec `scripts/contrat/exporter-openapi.sh` ;
+- [`../deploiement/demo/README.md`](../deploiement/demo/README.md) : toute l'application en une commande ;
+- [`../deploiement/prod/README.md`](../deploiement/prod/README.md) : mise en production.
 
-Pull requests encore ouvertes, à fusionner avant le lot 4 :
+Reste à faire, dans l'ordre :
 
-| Dépôt | PR | Objet |
-|---|---|---|
-| Client | #22 | Photo du jus de bissap |
-| Client | #23 | Bloc nginx du temps réel (SSE) |
-| Manager | #39 | Photo du jus de bissap |
-| Manager | #40 | Bloc nginx du temps réel (SSE) |
-| Backend | (cette PR) | Compose de démonstration et documents |
+1. **Les 3 décisions du client** (§ 1) : prestataire de paiement, hébergement, vrai menu.
+2. **Validation du contrat** par le lead Backend (§ 3, point 1).
+3. **Décision produit** : « supprimer » une fiche dans le Manager = l'archiver (§ 2).
 
 ---
 
@@ -88,7 +103,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
 
 7. **Contrat.** Mettre à jour `openapi.yaml` avec les écarts P.1 à P.4 validés.
 
-8. **App Client** : voir le lot 4 (redirection vers le prestataire, suppression du formulaire de carte).
+8. **App Client** : déjà prête (lot 4). Elle suit `paiement.redirectUrl` et ne contient plus de formulaire de carte.
 
 ### 1.2 Hébergement de production
 
@@ -108,13 +123,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    - Le backend et MySQL ne sont jamais exposés sur Internet.
    - Le proxy doit être sur le réseau Docker privé : le backend ne fait confiance à `X-Forwarded-For` / `X-Forwarded-Proto` que venant d'adresses privées.
 
-3. **Écrire `deploiement/prod/docker-compose.yml`** à partir de celui de démo, avec :
-   - `SPRING_PROFILES_ACTIVE=prod` ;
-   - `APP_AUTH_SEED_ENABLED=false` ;
-   - les images construites par la CI et étiquetées par version, plutôt que `build:` ;
-   - `restart: always` ;
-   - les limites mémoire ;
-   - les logs en rotation.
+3. ✅ **Fait : [`deploiement/prod/`](../deploiement/prod/README.md)**. Compose de production avec Caddy (HTTPS), MySQL et sauvegarde quotidienne, profil `prod`, journaux en rotation. Il reste à ajouter des limites mémoire adaptées au serveur choisi et, à terme, des images construites par la CI à la place de `build:`.
 
 4. **Variables à renseigner :**
 
@@ -129,11 +138,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    | Variables du prestataire | Voir 1.1 |
    | `APP_LIMITE_*` | Seulement si les limites par défaut ne conviennent pas |
 
-5. **Premier compte MANAGER en production : à prévoir, aucun chemin n'existe aujourd'hui.**
-   - En dev, les comptes viennent du seed.
-   - En prod, le seed est interdit et l'API refuse de créer un MANAGER.
-   - Solution recommandée : un amorçage à usage unique. Si `APP_AUTH_MANAGER_INITIAL_IDENTIFIANT` et `..._MOT_DE_PASSE` sont renseignés **et** qu'aucun MANAGER n'existe, le créer avec `mustChangePassword=true`, puis retirer les variables.
-   - Test à écrire : `VerificationConfigurationProdTest` et un test d'intégration.
+5. ✅ **Fait : premier compte MANAGER** (`ManagerInitial`, testé). Renseigner `MANAGER_INITIAL_IDENTIFIANT` et `MANAGER_INITIAL_MOT_DE_PASSE` (12 caractères minimum) au premier lancement, puis les vider. Le compte est créé seulement si aucun MANAGER n'existe, avec un mot de passe à changer à la première connexion, et l'action est tracée dans le journal d'audit.
 
 6. **Photos sur stockage objet** (nécessaire dès qu'il y a plusieurs instances ou pour des sauvegardes simples) :
    - Écrire `ObjetPhotoStorage implements PhotoStorage` avec le SDK S3. Il couvre S3, Cloudflare R2 et MinIO.
@@ -143,13 +148,11 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    - Test : MinIO en Testcontainers.
    - Les photos déjà sur disque sont à copier dans le bucket une fois.
 
-7. **Zones de livraison en production.** Les 14 régions et 125 secteurs sont aujourd'hui dans les données de **démo** (`db/demo`, profil dev) : une base de prod démarrerait sans zones.
-   - Ce sont des données de référence officielles : les passer dans une migration versionnée (`V6__zones_officielles.sql`).
-   - Le Gérant règle ensuite les prix et les régions ouvertes.
+7. ✅ **Fait : zones de livraison en production** (`V6__zones_officielles.sql`). Les 14 régions et 125 arrondissements officiels sont présents dans toute base, **toutes les régions fermées**. Le Gérant vérifie les prix (indicatifs) puis ouvre les régions livrées.
 
 8. **MySQL :**
    - Utilisateur dédié aux droits limités au schéma.
-   - Sauvegarde quotidienne (`mysqldump` ou sauvegarde de l'hébergeur) **et un essai de restauration**.
+   - Sauvegarde quotidienne : ✅ en place dans le compose de prod. À faire : la **copier hors du serveur** et **faire un essai de restauration**.
    - Fuseau : l'application calcule en `Africa/Dakar`.
 
 9. **Vérifications de mise en ligne :**
@@ -165,7 +168,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
 
 **Le jour où le restaurant fournit son menu :**
 
-1. **Méthode recommandée :** saisie par le Gérant dans le Manager (écrans Menu, Plats du jour, Accompagnements, Annonces), une fois le lot 4 branché. Aucun code, photos redimensionnées et nettoyées automatiquement.
+1. **Méthode recommandée :** saisie par le Gérant dans le Manager (écrans Menu, Plats du jour, Accompagnements, Annonces), déjà branchés sur l'API. Aucun code, photos redimensionnées et nettoyées automatiquement.
 
 2. **Pour un menu long :** un script d'import qui lit un tableur (CSV) et appelle l'API avec un compte Gérant. Dans l'ordre :
    1. `POST /categories` ;
@@ -183,53 +186,27 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
 
 ---
 
-## 2. Lot 4 : brancher les fronts sur le backend
+## 2. Lot 4 : fronts branchés sur le backend ✅
 
-Commun aux deux fronts :
+Fait et vérifié dans le navigateur contre le vrai backend (compose de démo). PR Client #25, Manager #42.
 
-- Démarrer les conteneurs avec `API_BASE_URL=/api/v1` et `API_UPSTREAM=http://<backend>:8080`. Le compose de démo le fait déjà.
-- Le bloc nginx du temps réel est prêt (PR Client #23, Manager #40).
-- Erreurs : toujours `{code, message, field}`. Afficher `message` au bon champ quand `field` est présent.
-- Statuts à gérer :
-
-  | Statut | Cas | Message à afficher |
-  |---|---|---|
-  | 409 | `VERSION_CONFLICT` | « modifié entre-temps, rechargez » |
-  | 409 | `STATUT_DEJA_APPLIQUE` | Rafraîchir sans erreur |
-  | 429 | Trop de requêtes | « Trop de tentatives, réessayez dans N s », d'après `Retry-After` |
-
-- Montants en entiers (F CFA).
-- Les identifiants sont des chaînes numériques (`"12"`) : ne pas dépendre du préfixe `produit-` des données de démo.
-
-### App Client
-
-| À faire | Détail |
+| | Ce qui a été fait |
 |---|---|
-| En-tête `Idempotency-Key` sur `POST /commandes` | Générer un UUID quand le client valide, le garder jusqu'à la réponse et **le renvoyer tel quel** en cas de nouvel essai (coupure réseau). Nouvelle clé seulement pour une nouvelle commande. |
-| Ne plus envoyer `statut` ni `statutPaiement` | Ils sont ignorés : la commande naît `CREEE` / `en_attente`. Afficher « Paiement en attente », puis « Annulée » si le paiement expire. |
-| Jeton de suivi | Mémoriser `jetonSuivi` (renvoyé **une seule fois** à la création) avec l'id de commande dans le `localStorage`. L'envoyer en `X-Jeton-Suivi` sur `GET /commandes/{id}` et `POST /paiements/init`. Sans jeton (autre appareil), seule la vue réduite par téléphone est disponible. |
-| Paiement | **Supprimer le formulaire de carte** : un numéro de carte ne doit jamais être saisi sur notre page (PCI DSS). Rediriger vers `paiement.redirectUrl`. Au retour, relire la commande. Bouton « Réessayer le paiement » vers `POST /paiements/init`. Si `paiement.simule` est vrai, afficher un bandeau « paiement simulé ». |
-| Lignes | Envoyer `accompagnementId` (aujourd'hui retrouvé par son nom, solution provisoire). |
-| Accompagnement proposé | Lire `categorie.accompagnementPropose` au lieu de tester le nom « Burgers ». |
+| App Client | `Idempotency-Key`, statut décidé par le serveur, `accompagnementId`, `accompagnementPropose`, jeton de suivi mémorisé sur l'appareil, « Paiement en attente » avec « Payer maintenant », redirection vers la page du prestataire (https uniquement), **formulaire de carte retiré** (PCI DSS), 429 avec `Retry-After` |
+| Manager, Gérant | Menu, plats du jour, accompagnements, annonces et zones sur l'API. Photos envoyées sur `POST /photos`. `version` envoyée : un conflit entre deux Gérants donne un **409 avec un message**, jamais un écrasement |
+| Manager, Cuisine, Livreur, Retraits | Temps réel SSE (nouvelle commande affichée en environ 1 s), `version` sur les transitions, « déjà fait par un collègue » sur un 409 |
+| Manager, Vendeur | Vente enregistrée par le serveur avant le reçu (ticket et monnaie rendue fournis par le serveur), `Idempotency-Key`, historique depuis le serveur |
+| Manager, Manager | Tableau de bord (`/statistiques/tableau-de-bord`), journal d'audit (`/audit`) |
 
-### SenYummies Manager
+**Décision à valider : « supprimer » = archiver.** Le serveur ne supprime jamais une fiche, pour garder l'historique des commandes et le journal d'audit. Le bouton « Supprimer définitivement » a été retiré des archives du Manager. Si une vraie suppression est voulue (par exemple pour un brouillon jamais publié), il faudra :
+- ajouter une route `DELETE` côté backend, refusée dès que la fiche est utilisée par une commande ;
+- remettre le bouton côté Manager.
 
-| À faire | Détail |
-|---|---|
-| Remplacer les contextes en mémoire | `MenuDataContext`, `AnnoncesContext` et `AccompagnementsCondimentsContext`, ainsi que les fichiers `*Data.js` (`menuData`, `platsDuJourData`, `accompagnementsCondimentsData`, `annonceData`, `zonesLivraisonData`), par des appels API. Toute modification renvoie la `version` lue, et le 409 est géré. Le cycle Brouillon / Actif / Archivé passe par `PATCH /{id}/statut`. |
-| Photos | Envoi par `POST /photos` (champ `fichier`), puis enregistrement de l'URL renvoyée. |
-| Cuisine, Livreur, Retraits comptoir | Déjà sur `apiGet` / `apiPatch` : vérifier les chemins, envoyer `version`, traiter `STATUT_DEJA_APPLIQUE` comme « déjà fait par un collègue ». Retirer `cuisineDemo.js` du chemin de production. |
-| Temps réel | Remplacer le rafraîchissement périodique par le flux `GET /api/v1/temps-reel/commandes`. `EventSource` ne peut pas envoyer l'en-tête `Authorization` : utiliser `fetch` en lecture continue (ou `@microsoft/fetch-event-source`), renvoyer `Last-Event-ID` à la reconnexion et garder un rafraîchissement de secours. |
-| Vente comptoir | `Idempotency-Key` comme l'App Client. Envoyer `montantRecu` et afficher `monnaieRendue` **calculée par le serveur**. |
-| Écrans Manager | `auditData` → `GET /audit` et `/audit/export.csv` ; `commandesData` et `financeData` → `/statistiques/*` ; `ventesData` → `/statistiques/ventes-comptoir`. |
-
-**Fini quand :** les fronts démarrés par le compose de démo fonctionnent sans aucune donnée locale. Une commande passée sur l'App Client apparaît **sans rechargement** en Cuisine. Deux Gérants qui modifient la même fiche obtiennent un message de conflit au lieu d'un écrasement.
-
----
+Le jour où le prestataire de paiement est branché (§ 1.1), l'App Client n'a **rien à changer** : elle suit déjà `paiement.redirectUrl`.
 
 ## 3. Points de vigilance
 
-1. **Contrat d'API.** `openapi.yaml` n'a pas été modifié. Les ajouts sont listés dans `ecarts-contrat.md` (2.1–2.15, 3.1–3.13, P.1–P.4, 5.1–5.6). Le lead Backend les valide, puis le contrat passe en v0.4.0 **avant** le lot 4.
+1. **Contrat d'API.** `openapi.yaml` n'a pas été modifié. Les ajouts sont listés dans `ecarts-contrat.md` (2.1–2.15, 3.1–3.13, P.1–P.4, 5.1–5.6), et la description générée par le backend est dans `openapi-implemente.json`. Le lead Backend les valide, puis le contrat passe en v0.4.0.
 2. **Une seule instance du backend.** Le temps réel, la limitation de débit et le cache sont en mémoire. Le tableau des 10 points (point 10) liste ce qu'il faut changer avant d'en lancer une deuxième.
 3. **Migrations.**
    - Ne jamais modifier une migration déjà appliquée : Flyway refuse au démarrage, car la somme de contrôle diffère.
@@ -244,7 +221,7 @@ Commun aux deux fronts :
    Prévoir une durée de conservation (par exemple, effacer la position GPS des commandes livrées depuis plus de N mois) et vérifier les obligations de déclaration auprès de la CDP (Sénégal).
 7. **Remboursements.** Une commande payée puis annulée est seulement signalée. Tant que 1.1 n'est pas traité, quelqu'un doit consulter le journal d'audit et rembourser à la main.
 8. **Comptes.**
-   - Premier MANAGER en prod : voir 1.2, point 5.
+   - Premier MANAGER en prod : ✅ voir 1.2, point 5.
    - Les comptes de démo (seed) n'existent qu'en dev.
 9. **Fins de ligne.** Sous Windows, `core.autocrlf=true`. Aucun diff qui réécrit tout un fichier : vérifier `git diff --stat` avant de committer.
 10. **Workflow.** `develop` est protégé : une branche par sujet, une PR, CI verte (`mvn -B verify`). Toute modification d'`openapi.yaml` est signalée pour revue.

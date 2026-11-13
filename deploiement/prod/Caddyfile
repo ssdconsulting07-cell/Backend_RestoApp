@@ -1,0 +1,28 @@
+# HTTPS automatique (Let's Encrypt) devant les deux applications.
+# Les domaines viennent du .env (DOMAINE_CLIENT, DOMAINE_MANAGER).
+{
+	email {$EMAIL_CERTIFICATS}
+}
+
+(commun) {
+	encode zstd gzip
+	header {
+		# HTTPS uniquement, pendant un an (la geolocalisation l'exige).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	# Les autres en-tetes de securite (CSP...) sont poses par le nginx de chaque app.
+}
+
+{$DOMAINE_CLIENT} {
+	import commun
+	reverse_proxy client:8080
+}
+
+{$DOMAINE_MANAGER} {
+	import commun
+	# flush_interval -1 : le flux temps reel (SSE) part sans attendre.
+	reverse_proxy manager:8080 {
+		flush_interval -1
+	}
+}
