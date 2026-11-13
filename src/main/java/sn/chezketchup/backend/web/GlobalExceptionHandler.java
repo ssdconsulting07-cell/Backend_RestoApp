@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import sn.chezketchup.backend.commandes.domaine.TransitionInterditeException;
+import sn.chezketchup.backend.paiements.application.PaymentProvider;
 import sn.chezketchup.backend.commun.erreurs.ConflitException;
 import sn.chezketchup.backend.commun.erreurs.RequeteInvalideException;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
@@ -102,6 +103,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RequeteInvalideException.class)
     public ResponseEntity<ApiError> handleRequeteInvalide(RequeteInvalideException ex) {
         return ResponseEntity.badRequest().body(ApiError.of(ex.getCode(), ex.getMessage(), ex.getChamp()));
+    }
+
+    /** Webhook de paiement non authentifie : ignore (le prestataire legitime signe toujours). */
+    @ExceptionHandler(PaymentProvider.SignatureInvalideException.class)
+    public ResponseEntity<ApiError> handleSignatureInvalide(PaymentProvider.SignatureInvalideException ex) {
+        LOG.warn("Notification de paiement rejetee : {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiError.of("SIGNATURE_INVALIDE", ex.getMessage()));
     }
 
     /** Transition de commande hors de la table pour ce role / ce mode (contrat : 403). */

@@ -39,7 +39,7 @@ public class PaiementService {
         this.horloge = horloge;
     }
 
-    public record IssuePaiement(String redirectUrl, boolean simule) {
+    public record IssuePaiement(String reference, String redirectUrl, boolean simule) {
     }
 
     /** Commande APP : paiement en ligne chez le prestataire. */
@@ -50,7 +50,7 @@ public class PaiementService {
                 prestataire.estSimule());
         appliquer(commande, p, r.statutImmediat());
         paiements.save(p);
-        return new IssuePaiement(r.redirectUrl(), prestataire.estSimule());
+        return new IssuePaiement(r.reference(), r.redirectUrl(), prestataire.estSimule());
     }
 
     /**

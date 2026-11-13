@@ -39,4 +39,9 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
                              @Param("mode") ModeCommande mode, @Param("canal") Canal canal, Pageable page);
 
     List<Commande> findTop50ByClientTelephoneAndCreeLeAfterOrderByCreeLeDesc(String telephone, Instant depuis);
+
+    /** Commandes toujours en attente de paiement, creees avant la limite. */
+    @Query("select c.id from Commande c where c.statut = sn.chezketchup.backend.commandes.domaine.Enums.StatutCommande.CREEE "
+            + "and c.creeLe < :limite order by c.id")
+    List<Long> enAttenteDePaiementAvant(@Param("limite") Instant limite, Pageable page);
 }
