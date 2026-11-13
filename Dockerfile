@@ -9,6 +9,13 @@ RUN mvn -q package -DskipTests
 # Etape 2 : image d'execution, plus legere que l'image de build
 FROM eclipse-temurin:17-jre
 WORKDIR /app
-COPY --from=build /app/target/backend-*.jar app.jar
+# Utilisateur dedie, sans privileges : l'image de base tourne en root.
+RUN groupadd --system senyummies && useradd --system --gid senyummies --no-create-home senyummies
+COPY --from=build --chown=senyummies:senyummies /app/target/backend-*.jar app.jar
+USER senyummies
 EXPOSE 8080
+# Sonde de sante (GET /api/v1/health, sans acces base) : utilisable par
+# docker compose (depends_on: condition: service_healthy) et l'orchestrateur.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=4 \
+  CMD curl -fsS http://localhost:8080/api/v1/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
