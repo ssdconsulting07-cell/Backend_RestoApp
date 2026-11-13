@@ -25,7 +25,7 @@ class MigrationsFlywayIT extends IntegrationTest {
         List<String> versions = jdbc.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = 1 AND version IS NOT NULL ORDER BY installed_rank",
                 String.class);
-        assertThat(versions).containsExactly("1", "1.1", "2", "3", "4");
+        assertThat(versions).containsExactly("1", "1.1", "2", "3", "4", "5");
     }
 
     @Test
