@@ -1,6 +1,7 @@
 package sn.chezketchup.backend.config;
 
 import tools.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -83,6 +84,10 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler())
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Flux SSE : la requete initiale est authentifiee (JWT) ; les
+                        // re-dispatchs asynchrones internes du flux ne repassent pas
+                        // par le filtre JWT et ne doivent pas etre refuses.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/first-login-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
@@ -94,7 +99,9 @@ public class SecurityConfig {
                                 "/accompagnements-condiments", "/annonces", "/regions",
                                 "/regions/*/secteurs", "/photos/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/commandes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/commandes/*").permitAll()
+                        // Suivi client sans compte : liste par numero (vue reduite) et
+                        // detail avec jeton de suivi ; le service applique ces regles.
+                        .requestMatchers(HttpMethod.GET, "/commandes", "/commandes/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/paiements/**").permitAll()
                         // Documentation API (Swagger UI + spec OpenAPI generee par springdoc) : consultee
                         // sans authentification par les equipes App Client et SenYummies Manager (voir

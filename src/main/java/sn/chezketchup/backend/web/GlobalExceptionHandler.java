@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import sn.chezketchup.backend.commandes.domaine.TransitionInterditeException;
 import sn.chezketchup.backend.commun.erreurs.ConflitException;
 import sn.chezketchup.backend.commun.erreurs.RequeteInvalideException;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
@@ -101,6 +102,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RequeteInvalideException.class)
     public ResponseEntity<ApiError> handleRequeteInvalide(RequeteInvalideException ex) {
         return ResponseEntity.badRequest().body(ApiError.of(ex.getCode(), ex.getMessage(), ex.getChamp()));
+    }
+
+    /** Transition de commande hors de la table pour ce role / ce mode (contrat : 403). */
+    @ExceptionHandler(TransitionInterditeException.class)
+    public ResponseEntity<ApiError> handleTransitionInterdite(TransitionInterditeException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("TRANSITION_INTERDITE", ex.getMessage()));
     }
 
     /** Deux modifications simultanees de la meme fiche : la seconde est refusee, jamais ecrasee. */

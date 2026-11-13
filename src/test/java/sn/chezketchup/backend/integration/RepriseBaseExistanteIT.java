@@ -19,7 +19,8 @@ import org.testcontainers.mysql.MySQLContainer;
  * de toutes les bases de dev actuelles) : Flyway la "baseline" en version 1
  * sans rejouer V1, applique V1.1, et les comptes existants sont conserves.
  */
-@SpringBootTest(properties = "app.jwt.secret=secret-de-test-integration-assez-long-pour-hs256")
+@SpringBootTest(properties = {"app.jwt.secret=secret-de-test-integration-assez-long-pour-hs256",
+        "app.taches-planifiees.actives=false"})
 @Testcontainers
 class RepriseBaseExistanteIT {
 
@@ -36,7 +37,7 @@ class RepriseBaseExistanteIT {
         List<Map<String, Object>> historique = jdbc.queryForList(
                 "SELECT version, type, success FROM flyway_schema_history ORDER BY installed_rank");
         assertThat(historique).extracting(l -> l.get("version") + ":" + l.get("type"))
-                .containsExactly("1:BASELINE", "1.1:SQL", "2:SQL");
+                .containsExactly("1:BASELINE", "1.1:SQL", "2:SQL", "3:SQL");
         assertThat(historique).allSatisfy(l -> assertThat(l.get("success")).isIn(true, 1, (byte) 1));
     }
 

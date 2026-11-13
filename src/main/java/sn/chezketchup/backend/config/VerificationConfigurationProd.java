@@ -30,17 +30,20 @@ public class VerificationConfigurationProd {
     private final boolean seedActive;
     private final String originesCors;
     private final String emplacementsFlyway;
+    private final String prestatairePaiement;
 
     public VerificationConfigurationProd(
             @Value("${app.jwt.secret}") String secretJwt,
             @Value("${app.auth.seed.enabled:false}") boolean seedActive,
             @Value("${app.cors.allowed-origins:}") String originesCors,
-            @Value("${spring.flyway.locations:}") String emplacementsFlyway
+            @Value("${spring.flyway.locations:}") String emplacementsFlyway,
+            @Value("${app.paiement.prestataire:simule}") String prestatairePaiement
     ) {
         this.secretJwt = secretJwt;
         this.seedActive = seedActive;
         this.originesCors = originesCors;
         this.emplacementsFlyway = emplacementsFlyway;
+        this.prestatairePaiement = prestatairePaiement;
     }
 
     @PostConstruct
@@ -48,6 +51,9 @@ public class VerificationConfigurationProd {
         List<String> problemes = problemes(secretJwt, seedActive, originesCors);
         if (emplacementsFlyway != null && emplacementsFlyway.contains("db/demo")) {
             problemes.add("spring.flyway.locations ne doit pas inclure db/demo (donnees de demonstration)");
+        }
+        if ("simule".equalsIgnoreCase(prestatairePaiement)) {
+            problemes.add("APP_PAIEMENT_PRESTATAIRE=simule interdit en production (PAIEMENT SIMULE : commandes confirmees sans argent reel)");
         }
         if (!problemes.isEmpty()) {
             throw new IllegalStateException(

@@ -27,7 +27,10 @@ import tools.jackson.databind.json.JsonMapper;
  * servies par l'API comme l'App Client les attend.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "app.jwt.secret=secret-de-test-integration-assez-long-pour-hs256")
+        properties = {"app.jwt.secret=secret-de-test-integration-assez-long-pour-hs256",
+                // Base propre a cette classe, arretee a sa fin : pas de tache planifiee
+                // qui continuerait d'interroger une base disparue.
+                "app.taches-planifiees.actives=false"})
 @ActiveProfiles("dev")
 @Testcontainers
 class DonneesDemoIT {

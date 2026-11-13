@@ -35,7 +35,12 @@ import tools.jackson.databind.json.JsonMapper;
                 "app.auth.seed.manager.password=Manager-Test-2026",
                 "app.auth.seed.livreur.password=Livreur-Test-2026",
                 "app.auth.seed.vendeur.password=Vendeur-Test-2026",
-                "app.photos.dossier=target/photos-tests"
+                "app.photos.dossier=target/photos-tests",
+                // Les tests creent beaucoup de commandes depuis la meme IP :
+                // la limitation est testee a part (LimitationDebitIT).
+                "app.limitation.commandes-par-minute=100000",
+                "app.limitation.suivi-par-minute=100000",
+                "app.limitation.connexions-par-minute=100000"
         })
 public abstract class IntegrationTest {
 
