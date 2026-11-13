@@ -68,7 +68,7 @@ Le point 9 ne s'applique à aucune fonctionnalité : voir plus bas.
 | Point | Comment c'est géré |
 |---|---|
 | 1 | Produits, prix et zone relus dans la transaction (voir catalogue). |
-| 2 | En-tête `Idempotency-Key` : même clé + même corps = première réponse rejouée (`Idempotency-Replayed: true`), aucune deuxième commande ; même clé + corps différent = 409. La clé est réservée dans une transaction séparée pour que deux envois simultanés ne passent pas tous les deux. **L'App Client ne l'envoie pas encore** (voir « Reste à faire », lot 4). *Test : `CommandesApiIT`.* |
+| 2 | En-tête `Idempotency-Key` : même clé + même corps = première réponse rejouée (`Idempotency-Replayed: true`), aucune deuxième commande ; même clé + corps différent = 409. La clé est réservée dans une transaction séparée pour que deux envois simultanés ne passent pas tous les deux. Envoyé par l'App Client et par la caisse du Manager (même clé au nouvel essai). *Test : `CommandesApiIT`.* |
 | 3 | Commande + lignes + historique + paiement + événement temps réel + audit + mémorisation de la clé d'idempotence dans **une seule transaction**. Une erreur à n'importe quelle étape annule tout. |
 | 4 | 10 commandes par minute et par IP réelle (429). IP lue dans `X-Forwarded-For` posé par le nginx des fronts, en ne faisant confiance qu'aux proxys du réseau privé. |
 | 5 | Canal APP public ; canal COMPTOIR réservé au VENDEUR. Statut et statut de paiement envoyés par le client **ignorés** ; prix, sous-total, frais et total **recalculés** par le serveur (400 `PRIX_INCOHERENT` avec le champ si le client annonce autre chose). Nom et prix figés sur chaque ligne. Aucune donnée personnelle (nom, téléphone, position) dans les logs. |
