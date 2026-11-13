@@ -196,6 +196,22 @@ public class Commande {
         changerStatut(StatutCommande.ANNULEE, acteur, null, maintenant);
     }
 
+    /**
+     * Paiement confirme APRES l'annulation de la commande (expiree faute de
+     * paiement, ou annulee) : l'argent est arrive mais rien ne sera prepare.
+     * Compensation : remboursement a signaler.
+     *
+     * @return vrai si la situation est nouvelle
+     */
+    public boolean paiementRecuApresAnnulation() {
+        if (statut != StatutCommande.ANNULEE || statutPaiement == StatutPaiement.PAYE) {
+            return false;
+        }
+        statutPaiement = StatutPaiement.PAYE;
+        remboursementASignaler = true;
+        return true;
+    }
+
     /** Vente comptoir en especes : la monnaie est calculee ici, jamais recue du client. */
     public void encaisserEspeces(long montantRecu) {
         this.montantRecu = montantRecu;

@@ -58,3 +58,16 @@
 ### Codes d'erreur introduits
 
 `PRIX_INCOHERENT`, `TOTAL_INCOHERENT`, `PRODUIT_INDISPONIBLE`, `PLAT_INDISPONIBLE`, `ACCOMPAGNEMENT_NON_PROPOSE`, `ZONE_REQUISE`, `ZONE_INDISPONIBLE`, `PRENOM_REQUIS`, `TELEPHONE_INVALIDE`, `TELEPHONE_REQUIS`, `MOYEN_PAIEMENT_INVALIDE`, `MOYEN_PAIEMENT_REQUIS`, `MODE_INVALIDE`, `MONTANT_INSUFFISANT`, `IDEMPOTENCE_CONFLIT`, `IDEMPOTENCE_CLE_INVALIDE`, `REQUETE_EN_COURS`, `STATUT_DEJA_APPLIQUE`, `TRANSITION_INTERDITE`, `TROP_DE_REQUETES`.
+
+## Lot paiement : relance, webhook, expiration
+
+| # | Ecart | Pourquoi | Impact fronts |
+|---|---|---|---|
+| P.1 | **`POST /paiements/init`** : corps `{commandeId}` + en-tete **`X-Jeton-Suivi` obligatoire** (404 sinon). Reponse `{paymentReference, redirectUrl, statutPaiement, statut, simule}`. 409 `PAIEMENT_DEJA_REGLE` si deja payee, 409 `COMMANDE_ANNULEE` si annulee. | Le contrat ne protegeait pas cette route : n'importe qui pouvait lancer un paiement sur la commande d'un autre. | Lot 4 : bouton « Reprendre le paiement » sur une commande en attente. |
+| P.2 | **`POST /paiements/webhook`** : notification **authentifiee** (signature du prestataire ; 401 `SIGNATURE_INVALIDE` sinon), **traitee une seule fois** par identifiant d'evenement, repond 200 `{resultat: TRAITEE \| DEJA_TRAITEE \| REFERENCE_INCONNUE \| MONTANT_INCOHERENT}`. Un montant different du total de la commande ne la confirme jamais. | Format du contrat « a preciser » : il depend du prestataire. Le simulateur fixe un format de reference (HMAC-SHA256 du corps + horodatage). | Aucun (appele par le prestataire). |
+| P.3 | **Expiration** : une commande APP non payee au bout de **30 min** (`APP_PAIEMENT_DELAI_EXPIRATION`) est annulee (`ANNULEE` / `echoue`). Un paiement confirme ensuite la laisse annulee, passe `statutPaiement` a `paye` et leve **`remboursementASignaler`**. | Compensation : jamais de commande preparee sans paiement, jamais d'argent encaisse sans trace. | Lot 4 : afficher « commande expiree » au client. |
+| P.4 | **Simulateur en deux modes** (`APP_PAIEMENT_SIMULE_MODE`) : `immediat` (defaut, App Client actuelle) ou `webhook` (comportement d'un vrai prestataire). | Tester le parcours asynchrone avant le choix du prestataire. | Aucun. |
+
+### Codes d'erreur introduits
+
+`SIGNATURE_INVALIDE`, `PAIEMENT_DEJA_REGLE`, `COMMANDE_ANNULEE`.
