@@ -1,6 +1,8 @@
 # Backend_RestoApp — SenYummies (équipe Backend)
 
-API commune consommée par `Client_RestoApp` (App Client) et `Manager_RestoApp` (SenYummies Manager, back-office). Stack : Spring Boot 3, Java 17, MySQL, Spring Security + JWT.
+API commune consommée par `Client_RestoApp` (App Client) et `Manager_RestoApp` (SenYummies Manager, back-office). Stack : Spring Boot 4.1 (la ligne 3.x n'a plus de correctifs depuis juin 2026), Java 17, MySQL, Spring Security + JWT, temps réel en SSE.
+
+**Profils** : `dev` par défaut (Swagger sous `/api/v1/swagger-ui.html`) ; `prod` (`SPRING_PROFILES_ACTIVE=prod`) coupe Swagger et **refuse de démarrer** si `APP_JWT_SECRET` est le secret par défaut du dépôt ou fait moins de 32 octets, si les comptes de démonstration sont activés, ou si CORS contient un joker. Derrière le relais nginx des fronts, la vraie IP du client et le HTTPS sont lus dans `X-Forwarded-For` / `X-Forwarded-Proto`, en ne faisant confiance qu'aux réseaux privés. Le conteneur tourne sans privilèges et expose un healthcheck (`GET /api/v1/health`).
 
 ## Démarrage rapide
 
