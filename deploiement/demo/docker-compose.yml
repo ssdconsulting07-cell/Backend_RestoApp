@@ -1,0 +1,102 @@
+# Demonstration complete de SenYummies en une commande :
+# MySQL + backend + App Client + SenYummies Manager.
+#
+#   cd deploiement/demo
+#   cp .env.exemple .env        # puis renseigner les secrets
+#   docker compose up -d --build
+#
+#   App Client : http://localhost:8081      Manager : http://localhost:8082
+#
+# Prerequis : les trois depots cote a cote (Backend_RestoApp,
+# Client_RestoApp, Manager_RestoApp), sur la branche voulue (develop).
+#
+# DEMONSTRATION, PAS PRODUCTION : profil dev (donnees de demo du Manager,
+# comptes de demo, PAIEMENT SIMULE), HTTP sans TLS. La production demande un
+# serveur avec HTTPS (obligatoire pour la geolocalisation) : voir
+# docs/reste-a-faire.md.
+#
+# Chaine de demarrage : MySQL sain -> backend sain (migrations Flyway
+# appliquees) -> fronts. Les fronts relaient /api/ (et le temps reel SSE)
+# vers le backend : une seule adresse par app, pas de CORS.
+name: senyummies-demo
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Renseignez MYSQL_ROOT_PASSWORD dans .env}
+      MYSQL_DATABASE: senyummies
+      MYSQL_USER: senyummies
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Renseignez MYSQL_PASSWORD dans .env}
+    volumes:
+      - mysql-donnees:/var/lib/mysql
+    # Pas de port publie : seule la base du reseau interne est joignable.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ../..
+    image: senyummies/backend:demo
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # dev = donnees de demonstration + Swagger. Jamais "prod" avec le paiement simule
+      # (le backend refuse de demarrer).
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/senyummies
+      SPRING_DATASOURCE_USERNAME: senyummies
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?Renseignez MYSQL_PASSWORD dans .env}
+      APP_JWT_SECRET: ${JWT_SECRET:?Renseignez JWT_SECRET dans .env (32 caracteres minimum)}
+      APP_AUTH_SEED_ENABLED: "true"
+      APP_AUTH_SEED_CUISINE_PASSWORD: ${MDP_CUISINE:?Renseignez MDP_CUISINE dans .env}
+      APP_AUTH_SEED_GERANT_PASSWORD: ${MDP_GERANT:?Renseignez MDP_GERANT dans .env}
+      APP_AUTH_SEED_MANAGER_PASSWORD: ${MDP_MANAGER:?Renseignez MDP_MANAGER dans .env}
+      APP_AUTH_SEED_LIVREUR_PASSWORD: ${MDP_LIVREUR:?Renseignez MDP_LIVREUR dans .env}
+      APP_AUTH_SEED_VENDEUR_PASSWORD: ${MDP_VENDEUR:?Renseignez MDP_VENDEUR dans .env}
+      APP_PAIEMENT_PRESTATAIRE: simule
+      APP_PAIEMENT_SIMULE_MODE: ${PAIEMENT_SIMULE_MODE:-immediat}
+    volumes:
+      - photos:/app/donnees/photos
+    ports:
+      # API et Swagger (/api/v1/swagger-ui.html) depuis cette machine uniquement.
+      - "127.0.0.1:${BACKEND_PORT:-8090}:8080"
+
+  client:
+    build: ../../../Client_RestoApp
+    image: senyummies/client:demo
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: /api/v1
+      API_UPSTREAM: http://backend:8080
+      SUPPORT_TELEPHONE: ${SUPPORT_TELEPHONE:-}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+    ports:
+      - "${CLIENT_PORT:-8081}:80"
+
+  manager:
+    build: ../../../Manager_RestoApp
+    image: senyummies/manager:demo
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: /api/v1
+      API_UPSTREAM: http://backend:8080
+      SUPPORT_TELEPHONE: ${SUPPORT_TELEPHONE:-}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+    ports:
+      - "${MANAGER_PORT:-8082}:80"
+
+volumes:
+  mysql-donnees:
+  photos:
