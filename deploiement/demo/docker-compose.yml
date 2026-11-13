@@ -80,7 +80,7 @@ services:
       SUPPORT_TELEPHONE: ${SUPPORT_TELEPHONE:-}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
     ports:
-      - "${CLIENT_PORT:-8081}:80"
+      - "${CLIENT_PORT:-8081}:8080"
 
   manager:
     build: ../../../Manager_RestoApp
@@ -95,7 +95,7 @@ services:
       SUPPORT_TELEPHONE: ${SUPPORT_TELEPHONE:-}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
     ports:
-      - "${MANAGER_PORT:-8082}:80"
+      - "${MANAGER_PORT:-8082}:8080"
 
 volumes:
   mysql-donnees:
