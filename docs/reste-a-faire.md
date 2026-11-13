@@ -108,13 +108,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    - Le backend et MySQL ne sont jamais exposés sur Internet.
    - Le proxy doit être sur le réseau Docker privé : le backend ne fait confiance à `X-Forwarded-For` / `X-Forwarded-Proto` que venant d'adresses privées.
 
-3. **Écrire `deploiement/prod/docker-compose.yml`** à partir de celui de démo, avec :
-   - `SPRING_PROFILES_ACTIVE=prod` ;
-   - `APP_AUTH_SEED_ENABLED=false` ;
-   - les images construites par la CI et étiquetées par version, plutôt que `build:` ;
-   - `restart: always` ;
-   - les limites mémoire ;
-   - les logs en rotation.
+3. ✅ **Fait : [`deploiement/prod/`](../deploiement/prod/README.md)**. Compose de production avec Caddy (HTTPS), MySQL et sauvegarde quotidienne, profil `prod`, journaux en rotation. Il reste à ajouter des limites mémoire adaptées au serveur choisi et, à terme, des images construites par la CI à la place de `build:`.
 
 4. **Variables à renseigner :**
 
@@ -129,11 +123,7 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    | Variables du prestataire | Voir 1.1 |
    | `APP_LIMITE_*` | Seulement si les limites par défaut ne conviennent pas |
 
-5. **Premier compte MANAGER en production : à prévoir, aucun chemin n'existe aujourd'hui.**
-   - En dev, les comptes viennent du seed.
-   - En prod, le seed est interdit et l'API refuse de créer un MANAGER.
-   - Solution recommandée : un amorçage à usage unique. Si `APP_AUTH_MANAGER_INITIAL_IDENTIFIANT` et `..._MOT_DE_PASSE` sont renseignés **et** qu'aucun MANAGER n'existe, le créer avec `mustChangePassword=true`, puis retirer les variables.
-   - Test à écrire : `VerificationConfigurationProdTest` et un test d'intégration.
+5. ✅ **Fait : premier compte MANAGER** (`ManagerInitial`, testé). Renseigner `MANAGER_INITIAL_IDENTIFIANT` et `MANAGER_INITIAL_MOT_DE_PASSE` (12 caractères minimum) au premier lancement, puis les vider. Le compte est créé seulement si aucun MANAGER n'existe, avec un mot de passe à changer à la première connexion, et l'action est tracée dans le journal d'audit.
 
 6. **Photos sur stockage objet** (nécessaire dès qu'il y a plusieurs instances ou pour des sauvegardes simples) :
    - Écrire `ObjetPhotoStorage implements PhotoStorage` avec le SDK S3. Il couvre S3, Cloudflare R2 et MinIO.
@@ -143,13 +133,11 @@ Pull requests encore ouvertes, à fusionner avant le lot 4 :
    - Test : MinIO en Testcontainers.
    - Les photos déjà sur disque sont à copier dans le bucket une fois.
 
-7. **Zones de livraison en production.** Les 14 régions et 125 secteurs sont aujourd'hui dans les données de **démo** (`db/demo`, profil dev) : une base de prod démarrerait sans zones.
-   - Ce sont des données de référence officielles : les passer dans une migration versionnée (`V6__zones_officielles.sql`).
-   - Le Gérant règle ensuite les prix et les régions ouvertes.
+7. ✅ **Fait : zones de livraison en production** (`V6__zones_officielles.sql`). Les 14 régions et 125 arrondissements officiels sont présents dans toute base, **toutes les régions fermées**. Le Gérant vérifie les prix (indicatifs) puis ouvre les régions livrées.
 
 8. **MySQL :**
    - Utilisateur dédié aux droits limités au schéma.
-   - Sauvegarde quotidienne (`mysqldump` ou sauvegarde de l'hébergeur) **et un essai de restauration**.
+   - Sauvegarde quotidienne : ✅ en place dans le compose de prod. À faire : la **copier hors du serveur** et **faire un essai de restauration**.
    - Fuseau : l'application calcule en `Africa/Dakar`.
 
 9. **Vérifications de mise en ligne :**
@@ -244,7 +232,7 @@ Commun aux deux fronts :
    Prévoir une durée de conservation (par exemple, effacer la position GPS des commandes livrées depuis plus de N mois) et vérifier les obligations de déclaration auprès de la CDP (Sénégal).
 7. **Remboursements.** Une commande payée puis annulée est seulement signalée. Tant que 1.1 n'est pas traité, quelqu'un doit consulter le journal d'audit et rembourser à la main.
 8. **Comptes.**
-   - Premier MANAGER en prod : voir 1.2, point 5.
+   - Premier MANAGER en prod : ✅ voir 1.2, point 5.
    - Les comptes de démo (seed) n'existent qu'en dev.
 9. **Fins de ligne.** Sous Windows, `core.autocrlf=true`. Aucun diff qui réécrit tout un fichier : vérifier `git diff --stat` avant de committer.
 10. **Workflow.** `develop` est protégé : une branche par sujet, une PR, CI verte (`mvn -B verify`). Toute modification d'`openapi.yaml` est signalée pour revue.
