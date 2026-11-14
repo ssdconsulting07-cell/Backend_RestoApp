@@ -16,3 +16,81 @@ jobs:
           cache: maven
       - name: Build et tests
         run: mvn -B verify
+
+  smoke:
+    # Test de fumee k6 (load-tests/smoke.js) sur toute la chaine, comme en
+    # production : nginx de l'App Client -> backend (profil loadtest) -> MySQL.
+    # Sur le modele du job DAST (securite.yml), mais en moins de 3 minutes :
+    # le backend tourne en jar (cache Maven) et nginx reprend la configuration
+    # du Client a une version fixee, sans compiler le front. Secrets jetables.
+    # Les gros scenarios de charge restent manuels (load-tests/README.md).
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CLIENT_REF: develop
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Client_RestoApp (configuration nginx)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ssdconsulting07-cell/Client_RestoApp
+          ref: ${{ env.CLIENT_REF }}
+          path: client-app
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Secrets jetables
+        run: |
+          for v in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD JWT_SECRET K6_MDP_CUISINE K6_MDP_GERANT K6_MDP_MANAGER K6_MDP_LIVREUR K6_MDP_VENDEUR; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::$valeur"
+            echo "$v=$valeur" >> "$GITHUB_ENV"
+          done
+      - name: MySQL
+        run: |
+          docker run -d --name mysql -p 127.0.0.1:3306:3306 \
+            -e MYSQL_ROOT_PASSWORD -e MYSQL_DATABASE=senyummies \
+            -e MYSQL_USER=senyummies -e MYSQL_PASSWORD mysql:8.0
+      - name: Compilation du backend
+        run: mvn -B -q -DskipTests package
+      - name: Demarrage (MySQL, backend, nginx du Client)
+        run: |
+          for i in $(seq 1 60); do
+            docker exec mysql mysql -h127.0.0.1 -usenyummies -p"$MYSQL_PASSWORD" -e 'SELECT 1' senyummies >/dev/null 2>&1 && break
+            sleep 2
+          done
+          SPRING_PROFILES_ACTIVE=loadtest \
+          SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/senyummies \
+          SPRING_DATASOURCE_USERNAME=senyummies SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \
+          APP_JWT_SECRET="$JWT_SECRET" APP_AUTH_SEED_ENABLED=true \
+          APP_AUTH_SEED_CUISINE_PASSWORD="$K6_MDP_CUISINE" APP_AUTH_SEED_GERANT_PASSWORD="$K6_MDP_GERANT" \
+          APP_AUTH_SEED_MANAGER_PASSWORD="$K6_MDP_MANAGER" APP_AUTH_SEED_LIVREUR_PASSWORD="$K6_MDP_LIVREUR" \
+          APP_AUTH_SEED_VENDEUR_PASSWORD="$K6_MDP_VENDEUR" \
+          APP_PAIEMENT_PRESTATAIRE=simule APP_PAIEMENT_SIMULE_MODE=immediat \
+            nohup java -jar target/*.jar --server.port=8081 > backend.log 2>&1 &
+          docker run -d --name client --network host \
+            -e API_UPSTREAM=http://127.0.0.1:8081 -e MOCK_UPSTREAM=http://127.0.0.1:3101 \
+            -e NGINX_RESOLVER=127.0.0.53 \
+            -v "$PWD/client-app/docker/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro" \
+            -v "$PWD/client-app/docker/entetes-securite.conf:/etc/nginx/entetes-securite.conf:ro" \
+            nginxinc/nginx-unprivileged:1.27-alpine
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/api/v1/health >/dev/null && exit 0
+            sleep 2
+          done
+          echo "Backend injoignable via nginx" >&2
+          exit 1
+      - name: k6 smoke.js
+        run: |
+          docker run --rm --network host -v "$PWD/load-tests:/scripts:ro" -w /scripts \
+            -e BASE_URL=http://localhost:8080/api/v1 \
+            -e K6_MDP_CUISINE -e K6_MDP_GERANT -e K6_MDP_MANAGER -e K6_MDP_LIVREUR -e K6_MDP_VENDEUR \
+            grafana/k6:1.3.0 run smoke.js
+      - name: Journaux
+        if: failure()
+        run: |
+          tail -200 backend.log || true
+          docker logs client 2>&1 | tail -50 || true

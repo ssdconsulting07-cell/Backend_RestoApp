@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 import jakarta.annotation.PostConstruct;
 
@@ -31,19 +33,22 @@ public class VerificationConfigurationProd {
     private final String originesCors;
     private final String emplacementsFlyway;
     private final String prestatairePaiement;
+    private final Environment environnement;
 
     public VerificationConfigurationProd(
             @Value("${app.jwt.secret}") String secretJwt,
             @Value("${app.auth.seed.enabled:false}") boolean seedActive,
             @Value("${app.cors.allowed-origins:}") String originesCors,
             @Value("${spring.flyway.locations:}") String emplacementsFlyway,
-            @Value("${app.paiement.prestataire:simule}") String prestatairePaiement
+            @Value("${app.paiement.prestataire:simule}") String prestatairePaiement,
+            Environment environnement
     ) {
         this.secretJwt = secretJwt;
         this.seedActive = seedActive;
         this.originesCors = originesCors;
         this.emplacementsFlyway = emplacementsFlyway;
         this.prestatairePaiement = prestatairePaiement;
+        this.environnement = environnement;
     }
 
     @PostConstruct
@@ -54,6 +59,16 @@ public class VerificationConfigurationProd {
         }
         if ("simule".equalsIgnoreCase(prestatairePaiement)) {
             problemes.add("APP_PAIEMENT_PRESTATAIRE=simule interdit en production (PAIEMENT SIMULE : commandes confirmees sans argent reel)");
+        }
+        // Tests de charge : limites de debit levees et metriques exposees,
+        // jamais en production.
+        if (environnement.acceptsProfiles(Profiles.of("loadtest"))) {
+            problemes.add("le profil loadtest (tests de charge) est interdit avec le profil prod");
+        }
+        if (!environnement.getProperty("management.endpoints.web.exposure.include", "").isBlank()
+                || !"none".equalsIgnoreCase(environnement.getProperty("management.endpoints.access.default", "none"))
+                || environnement.containsProperty("management.server.port")) {
+            problemes.add("Actuator (metriques) ne doit jamais etre active en production");
         }
         if (!problemes.isEmpty()) {
             throw new IllegalStateException(
