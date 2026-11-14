@@ -26,7 +26,6 @@ public class SecuriteMetriquesLoadtest {
         return http
                 .securityMatcher(requete -> requete.getLocalPort() == portGestion)
                 .authorizeHttpRequests(acces -> acces.anyRequest().permitAll())
-                .csrf(csrf -> csrf.disable())
                 .build();
     }
 }
