@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import sn.chezketchup.backend.avis.application.AvisLivraisonService;
 import sn.chezketchup.backend.commun.audit.JournalActions;
 import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.security.Role;
@@ -18,23 +19,32 @@ public class StaffUserManagementService {
     private final PasswordEncoder passwordEncoder;
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
     private final JournalActions journal;
+    private final AvisLivraisonService avisLivraison;
 
     public StaffUserManagementService(
             StaffUserRepository staffUserRepository,
             PasswordEncoder passwordEncoder,
             TemporaryPasswordGenerator temporaryPasswordGenerator,
-            JournalActions journal
+            JournalActions journal,
+            AvisLivraisonService avisLivraison
     ) {
         this.staffUserRepository = staffUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.temporaryPasswordGenerator = temporaryPasswordGenerator;
         this.journal = journal;
+        this.avisLivraison = avisLivraison;
     }
 
     @Transactional(readOnly = true)
     public List<StaffUserResponse> list() {
+        // Note moyenne des clients pour les livreurs (avis apres livraison).
+        var notes = avisLivraison.notesParLivreur();
         return staffUserRepository.findAllByOrderByUsernameAsc().stream()
-                .map(StaffUserResponse::from)
+                .map(user -> {
+                    var note = user.getRole() == Role.LIVREUR ? notes.get(user.getUsername()) : null;
+                    return note == null ? StaffUserResponse.from(user)
+                            : StaffUserResponse.from(user, note.moyenne(), note.nombre());
+                })
                 .toList();
     }
 

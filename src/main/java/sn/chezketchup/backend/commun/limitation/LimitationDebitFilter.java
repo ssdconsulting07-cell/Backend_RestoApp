@@ -68,7 +68,9 @@ public class LimitationDebitFilter extends OncePerRequestFilter {
         } else if ("POST".equals(methode) && "/auth/login".equals(chemin)) {
             regle = "connexion";
             limite = connexionsParMinute;
-        } else if ("GET".equals(methode) && chemin.startsWith("/commandes") && requete.getHeader("Authorization") == null) {
+        } else if (chemin.startsWith("/commandes") && requete.getHeader("Authorization") == null
+                && ("GET".equals(methode) || ("POST".equals(methode) && chemin.endsWith("/avis")))) {
+            // Suivi client sans compte, et avis sur la livraison (memes jetons a deviner).
             regle = "suivi";
             limite = suiviParMinute;
         }

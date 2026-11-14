@@ -86,3 +86,12 @@
 ### Correction d'un bug existant
 
 `POST /staff-users` refusait **toute** creation de compte des qu'un compte MANAGER existait (`role == MANAGER || existsByRole(MANAGER)`) : comme le compte `manager` existe toujours, le Gerant ne pouvait creer aucun compte. Seule la creation d'un **MANAGER** est desormais refusee (compte unique, gere par le systeme).
+
+## Avis du client sur sa livraison (note du livreur)
+
+| # | Ecart | Pourquoi | Impact fronts |
+|---|---|---|---|
+| A.1 | **`POST /commandes/{id}/avis`** (sans compte, en-tete **`X-Jeton-Suivi` obligatoire**, 404 sinon) : corps `{note: 1..5, commentaire?: 300 car.}` -> 201 `{commandeId, note, commentaire, creeLe}`. 409 `COMMANDE_NON_LIVREE` si la commande n'est pas une livraison livree, 409 `AVIS_DEJA_DONNE` au deuxieme avis, 400 si la note sort de 1..5. Limite : regle « suivi » (30/min/IP). Trace dans le journal d'audit. | Notation du livreur demandee par le restaurant. | App Client : bloc « Comment s'est passee votre livraison ? » apres la livraison. |
+| A.2 | **`GET /commandes/{id}/avis`** (jeton de suivi) : l'avis deja donne, 404 sinon. | Savoir s'il faut encore proposer de noter (autre appareil, cache vide). | App Client. |
+| A.3 | **`StaffUser.noteMoyenne`** (nombre a une decimale, `null` sans avis) et **`StaffUser.nombreAvis`** (entier) dans `GET /staff-users`, pour les **livreurs** (livreur = celui qui a valide la livraison, historique `LIVREE`). | Note des livreurs dans la gestion du personnel. | Manager : colonne « Note client ». |
+| A.4 | Migration **V7** : table `avis_livraison` (un avis par commande, contrainte d'unicite et `CHECK note BETWEEN 1 AND 5`). | Une seule note par livraison, garantie par la base meme en cas d'envois simultanes. | Aucun. |
