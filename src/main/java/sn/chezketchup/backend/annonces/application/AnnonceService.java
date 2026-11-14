@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.chezketchup.backend.annonces.domaine.Annonce;
@@ -16,6 +17,7 @@ import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
 import sn.chezketchup.backend.commun.publication.StatutPublication;
 import sn.chezketchup.backend.commun.publication.Visibilite;
+import sn.chezketchup.backend.commun.transaction.LectureSeule;
 
 /** Annonces du Gerant (popup de l'App Client). */
 @Service
@@ -25,20 +27,24 @@ public class AnnonceService {
     private final AnnonceRepository annonces;
     private final AnnoncesPubliques publiques;
     private final JournalActions journal;
+    private final LectureSeule lecture;
 
-    public AnnonceService(AnnonceRepository annonces, AnnoncesPubliques publiques, JournalActions journal) {
+    public AnnonceService(AnnonceRepository annonces, AnnoncesPubliques publiques, JournalActions journal,
+                          LectureSeule lecture) {
         this.annonces = annonces;
         this.publiques = publiques;
         this.journal = journal;
+        this.lecture = lecture;
     }
 
-    @Transactional(readOnly = true)
+    /** Vue publique servie par le cache sans transaction ; Gerant : transaction de lecture. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<AnnonceVue> lister(StatutPublication demande) {
         StatutPublication statut = Visibilite.statutAFiltrer(demande);
         if (Visibilite.estVuePublique()) {
             return publiques.lister();
         }
-        return annonces.rechercher(statut).stream().map(AnnonceVue::de).toList();
+        return lecture.executer(() -> annonces.rechercher(statut).stream().map(AnnonceVue::de).toList());
     }
 
     @CacheEvict(cacheNames = AnnoncesPubliques.CACHE, allEntries = true)

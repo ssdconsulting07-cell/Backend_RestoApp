@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.chezketchup.backend.commun.audit.JournalActions;
@@ -14,6 +15,7 @@ import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.commun.erreurs.ConflitException;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
 import sn.chezketchup.backend.commun.publication.Visibilite;
+import sn.chezketchup.backend.commun.transaction.LectureSeule;
 import sn.chezketchup.backend.zones.application.ZonesVues.RegionVue;
 import sn.chezketchup.backend.zones.application.ZonesVues.SecteurVue;
 import sn.chezketchup.backend.zones.domaine.Region;
@@ -30,28 +32,34 @@ public class ZonesService {
     private final SecteurRepository secteurs;
     private final ZonesPubliques publiques;
     private final JournalActions journal;
+    private final LectureSeule lecture;
 
     public ZonesService(RegionRepository regions, SecteurRepository secteurs, ZonesPubliques publiques,
-                        JournalActions journal) {
+                        JournalActions journal, LectureSeule lecture) {
         this.regions = regions;
         this.secteurs = secteurs;
         this.publiques = publiques;
         this.journal = journal;
+        this.lecture = lecture;
     }
 
-    @Transactional(readOnly = true)
+    /** Servi par le cache, sans transaction (ZonesPubliques ouvre la sienne au remplissage). */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<RegionVue> regions(Boolean active) {
         return publiques.regions(active);
     }
 
     /** Client : zones proposees (region ouverte, zones non masquees). Gerant : toutes les zones de la region. */
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<SecteurVue> secteurs(String regionCode) {
-        region(regionCode);
         if (Visibilite.estVuePublique()) {
             return publiques.secteurs(regionCode);
         }
-        return secteurs.findByRegionCodeOrderByDepartementAscNomAsc(regionCode).stream().map(SecteurVue::de).toList();
+        return lecture.executer(() -> {
+            region(regionCode);
+            return secteurs.findByRegionCodeOrderByDepartementAscNomAsc(regionCode).stream()
+                    .map(SecteurVue::de).toList();
+        });
     }
 
     @CacheEvict(cacheNames = {ZonesPubliques.REGIONS, ZonesPubliques.SECTEURS}, allEntries = true)
