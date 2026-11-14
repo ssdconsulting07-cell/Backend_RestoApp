@@ -78,6 +78,22 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-cache</artifactId>
     </dependency>
+    <!-- Metriques (CPU, memoire, pool Hikari, cache, requetes SQL) pour les
+         tests de charge : desactivees partout, actives UNIQUEMENT dans le
+         profil loadtest, sur un port de gestion separe (jamais en prod). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-micrometer</artifactId>
+    </dependency>
     <!-- Lecture des photos WebP (le JDK ne lit que JPEG/PNG/GIF/BMP). -->
     <dependency>
       <groupId>com.twelvemonkeys.imageio</groupId>

@@ -1,0 +1,69 @@
+# Environnement des TESTS DE CHARGE (load-tests/) : MySQL + backend en profil
+# loadtest + nginx de l'App Client (toute la chaine, comme en production).
+#
+#   cd deploiement/loadtest
+#   cp .env.exemple .env           # secrets jetables
+#   docker compose up -d --build --wait
+#   ... scenarios k6 (voir load-tests/README.md) ...
+#   docker compose down -v         # base repartie de zero au prochain passage
+#
+# Points d'entree (cette machine uniquement) :
+#   API via nginx      http://localhost:8380/api/v1     (BASE_URL des scenarios)
+#   Metriques backend  http://localhost:9190/actuator/prometheus (jamais relaye par nginx)
+#
+# JAMAIS en production : profil loadtest (limites de debit levees, metriques
+# exposees), paiement simule, comptes de demonstration.
+name: senyummies-loadtest
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Renseignez MYSQL_ROOT_PASSWORD dans .env}
+      MYSQL_DATABASE: senyummies
+      MYSQL_USER: senyummies
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Renseignez MYSQL_PASSWORD dans .env}
+    # Journal des requetes lentes (> 100 ms) : docker compose exec mysql cat /var/lib/mysql/lent.log
+    command: ["--slow-query-log=1", "--long-query-time=0.1", "--slow-query-log-file=/var/lib/mysql/lent.log", "--max-connections=300"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    build: ../..
+    image: senyummies/backend:loadtest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: loadtest
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/senyummies
+      SPRING_DATASOURCE_USERNAME: senyummies
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET:?Renseignez JWT_SECRET dans .env (32 caracteres minimum)}
+      APP_AUTH_SEED_ENABLED: "true"
+      APP_AUTH_SEED_CUISINE_PASSWORD: ${K6_MDP_CUISINE:?Renseignez K6_MDP_CUISINE dans .env}
+      APP_AUTH_SEED_GERANT_PASSWORD: ${K6_MDP_GERANT:?Renseignez K6_MDP_GERANT dans .env}
+      APP_AUTH_SEED_MANAGER_PASSWORD: ${K6_MDP_MANAGER:?Renseignez K6_MDP_MANAGER dans .env}
+      APP_AUTH_SEED_LIVREUR_PASSWORD: ${K6_MDP_LIVREUR:?Renseignez K6_MDP_LIVREUR dans .env}
+      APP_AUTH_SEED_VENDEUR_PASSWORD: ${K6_MDP_VENDEUR:?Renseignez K6_MDP_VENDEUR dans .env}
+      APP_PAIEMENT_PRESTATAIRE: simule
+      APP_PAIEMENT_SIMULE_MODE: immediat
+      APP_TACHES_PLANIFIEES_ACTIVES: "true"
+    ports:
+      - "127.0.0.1:${METRIQUES_PORT:-9190}:9090"
+
+  client:
+    # nginx de l'App Client : relaie /api/ vers le backend (chaine de production).
+    build: ${CLIENT_DIR:-../../../Client_RestoApp}
+    image: senyummies/client:loadtest
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: /api/v1
+      API_UPSTREAM: http://backend:8080
+    ports:
+      - "127.0.0.1:${PORT:-8380}:8080"
