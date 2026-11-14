@@ -1,8 +1,8 @@
 # Tests de charge : rapport du premier passage
 
-**Date** : 14/11/2026
-**Branche** : `feature/tests-de-charge`
-**Environnement** : `deploiement/loadtest` (MySQL 8.0, backend en profil `loadtest`, nginx de l'App Client), base de démo neuve.
+- **Date** : 14/11/2026
+- **Branches** : `feature/tests-de-charge` (mesures), `perf/cache-sans-transaction` (correction du goulot)
+- **Environnement** : `deploiement/loadtest` (MySQL 8.0, backend en profil `loadtest`, nginx de l'App Client), base de démo neuve.
 
 > **Ces chiffres ne sont pas des références.** Ils ont été mesurés sur un PC de développement Windows (12 threads, Docker Desktop) qui faisait tourner en même temps k6, nginx, le backend et MySQL. Ils servent à comparer des versions entre elles et à trouver les goulots. Les valeurs de référence viendront du serveur de recette, une fois l'hébergement choisi.
 
@@ -10,7 +10,8 @@
 
 - **Fonctionnel** : aucun défaut sous charge. 0 % d'erreurs HTTP sur tous les scénarios. Le total des commandes correspond toujours au catalogue. Il n'y a ni doublon (idempotence), ni commande acceptée après une rupture, ni double transition. Les transitions interdites renvoient 403 et la limitation renvoie 429 à partir de la 11ᵉ requête.
 - **Décrochage** : la lecture du menu tient le seuil jusqu'à **300 utilisateurs simultanés** (p95 de 55 ms), puis décroche à **500** (p95 de 1,95 s, seuil de 300 ms dépassé). Le débit plafonne alors vers 950 requêtes/s.
-- **Goulot** : sur ce PC, c'est d'abord le processeur, partagé par toute la chaîne. Le cache fonctionne (100 % de succès), mais **chaque lecture servie par le cache ouvre quand même une transaction MySQL**. Cela coûte une connexion du pool et quatre allers-retours vers la base, pour rien.
+- **Goulot** : sur ce PC, c'est d'abord le processeur, partagé par toute la chaîne. Le cache fonctionne (100 % de succès), mais **chaque lecture servie par le cache ouvrait quand même une transaction MySQL**. Cela coûtait une connexion du pool et quatre allers-retours vers la base, pour rien.
+- **Corrigé** (piste 1, voir « Correction appliquée ») : à conditions identiques, MySQL passe d'environ 155 % à 10 % de processeur. À 500 utilisateurs, le débit gagne 39 % et la médiane passe de 1,6 s à 0,36 s.
 
 ## Résultats par scénario
 
@@ -89,16 +90,43 @@ Un premier passage enchaîné sans remise à zéro avait donné un délai de plu
   - `POST /auth/login` : 10 × 401 puis 3 × 429 ;
   - le code `TROP_DE_REQUETES` et l'en-tête `Retry-After` sont présents.
 
+## Correction appliquée : lectures en cache sans transaction (piste 1)
+
+Branche `perf/cache-sans-transaction` :
+
+- `@Transactional(readOnly = true)` est retiré de `CatalogueCachePublic`, `CatalogueService`, `AnnoncesPubliques` et `ZonesPubliques`, ainsi que des lectures publiques d'`AnnonceService` et de `ZonesService` ;
+- la transaction de lecture est désormais ouverte à la demande (`LectureSeule`), seulement quand la base est vraiment lue : remplissage du cache ou vue du Gérant ;
+- un test unitaire (`LecturesEnCacheSansTransactionTest`) vérifie qu'une lecture servie par le cache n'ouvre aucune transaction. Il échoue sur l'ancien code.
+
+### Mesure avant / après
+
+Les deux images ont été mesurées l'une après l'autre, deux fois chacune, en alternant avant / après / avant / après. Chaque mesure part d'une base neuve, après 30 s d'échauffement de la JVM, avec `lecture-menu.js` et un palier de 45 s :
+
+| Utilisateurs | Version | Médiane | p95 | Débit | CPU backend | CPU MySQL |
+|---:|---|---:|---:|---:|---:|---:|
+| 300 | avant | 217 / 329 ms | 0,94 / 1,23 s | 613 / 572 req/s | ~420 % | ~155 % |
+| 300 | **après** | **47 / 96 ms** | **0,24 / 0,55 s** | **749 / 714 req/s** | ~290 % | **~7 %** |
+| 500 | avant | 1,58 / 1,63 s | 2,52 / 2,46 s | 648 / 642 req/s | ~390 % | ~160 % |
+| 500 | **après** | **375 / 343 ms** | **2,02 / 1,69 s** | **871 / 918 req/s** | ~300 % | **~12 %** |
+
+Chaque case donne les valeurs des deux mesures.
+
+- **MySQL** est presque déchargé des lectures du menu : de ~270 000 à ~600 `SET autocommit` sur un passage.
+- **Le backend** consomme moins de processeur pour plus de débit.
+- **À 300 utilisateurs**, la médiane est divisée par 3 à 5 et le p95 par 2 à 4 ; il repasse sous le seuil de 300 ms dans une mesure sur deux.
+- **À 500 utilisateurs**, le PC reste saturé (nginx, backend et k6 sur la même machine) : le p95 reste au-dessus du seuil.
+
+Ces mesures A/B ont été prises en fin de journée, alors que d'autres applications tournaient sur le PC : environnements de dev et tunnels. Les valeurs absolues sont donc moins bonnes que celles du matin, données plus haut. Seule la comparaison avant / après, faite dans les mêmes conditions, compte.
+
 ## Pistes concrètes
 
 ### Lecture du menu (scénarios 1 et 2)
 
-1. **Servir le cache sans transaction.** C'est la piste au meilleur rapport gain/effort.
+1. **Servir le cache sans transaction.** ✅ **Fait** (voir « Correction appliquée »). C'était la piste au meilleur rapport gain/effort.
    - Retirer `@Transactional(readOnly = true)` de `CatalogueCachePublic`, de `AnnoncesPubliques` et du chemin public de `CatalogueService`.
    - Garder une transaction en lecture seule uniquement sur le chargement réel, quand le cache est vide. Par exemple, une méthode privée appelée via `TransactionTemplate`, ou placer l'intercepteur de cache avant celui des transactions.
-   - **Gain attendu** : plus de connexion Hikari ni d'aller-retour MySQL par lecture servie par le cache, soit environ un cœur de MySQL libéré à 500 utilisateurs, et du processeur côté backend.
-   - **À vérifier** : relancer `lecture-menu.js` ; `SET autocommit` doit disparaître du haut de `performance_schema`.
-2. **En-têtes de cache HTTP sur le menu public.** Un `Cache-Control: public, max-age=30` sur les six routes du menu (le catalogue change rarement), avec un `proxy_cache` court dans nginx, absorberait les rafales avant le backend. Les écrans du back-office ne sont pas concernés.
+   - **Constaté** : le CPU de MySQL passe de ~155 % à ~10 %, et `SET autocommit` disparaît du haut de `performance_schema`. À 500 utilisateurs, le débit gagne 39 %.
+2. **Cache nginx devant le menu public.** Le backend envoie déjà `Cache-Control: public, max-age=30` sur les lectures publiques, mais personne ne s'en sert entre le client et le backend. Un `proxy_cache` court dans le nginx des fronts, respectant cet en-tête, absorberait les rafales avant le backend. Les écrans du back-office restent en `no-store` et ne sont pas concernés.
 3. **nginx.** Il consomme jusqu'à 5,7 cœurs à 500 utilisateurs, surtout pour recompresser en gzip, à chaque requête, des réponses identiques. Le `proxy_cache` de la piste 2 éviterait une partie de ce travail. Sur le serveur de recette, mesurer nginx sur une machine séparée de k6.
 
 ### Rush de midi (scénario 4)
