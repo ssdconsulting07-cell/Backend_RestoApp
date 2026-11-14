@@ -102,6 +102,8 @@ public class SecurityConfig {
                         // Suivi client sans compte : liste par numero (vue reduite) et
                         // detail avec jeton de suivi ; le service applique ces regles.
                         .requestMatchers(HttpMethod.GET, "/commandes", "/commandes/*").permitAll()
+                        // Avis du client sur sa livraison (jeton de suivi, regles dans le service).
+                        .requestMatchers("/commandes/*/avis").permitAll()
                         .requestMatchers(HttpMethod.POST, "/paiements/**").permitAll()
                         // Documentation API (Swagger UI + spec OpenAPI generee par springdoc) : consultee
                         // sans authentification par les equipes App Client et SenYummies Manager (voir

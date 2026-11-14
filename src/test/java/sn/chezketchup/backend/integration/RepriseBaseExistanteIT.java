@@ -37,7 +37,7 @@ class RepriseBaseExistanteIT {
         List<Map<String, Object>> historique = jdbc.queryForList(
                 "SELECT version, type, success FROM flyway_schema_history ORDER BY installed_rank");
         assertThat(historique).extracting(l -> l.get("version") + ":" + l.get("type"))
-                .containsExactly("1:BASELINE", "1.1:SQL", "2:SQL", "3:SQL", "4:SQL", "5:SQL", "6:SQL");
+                .containsExactly("1:BASELINE", "1.1:SQL", "2:SQL", "3:SQL", "4:SQL", "5:SQL", "6:SQL", "7:SQL");
         assertThat(historique).allSatisfy(l -> assertThat(l.get("success")).isIn(true, 1, (byte) 1));
     }
 
