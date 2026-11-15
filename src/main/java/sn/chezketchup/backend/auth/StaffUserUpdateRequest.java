@@ -10,7 +10,7 @@ public record StaffUserUpdateRequest(
         @Size(max = 80) String firstName,
         @Size(max = 80) String lastName,
         @Size(max = 240) String address,
-        @Pattern(regexp = "^[0-9]{14}$", message = "La CNI doit contenir exactement 14 chiffres.") String cni,
+        @Pattern(regexp = "^[0-9]{13}$", message = "La CNI doit contenir exactement 13 chiffres.") String cni,
         @Size(max = 30) String phone,
         @NotBlank @Size(min = 3, max = 80) String username,
         @NotNull Role role,

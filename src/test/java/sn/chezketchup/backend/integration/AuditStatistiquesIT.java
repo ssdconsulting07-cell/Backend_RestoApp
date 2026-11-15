@@ -68,18 +68,18 @@ class AuditStatistiquesIT extends IntegrationTest {
     void lesComptesDuPersonnelSontTraces() {
         String identifiant = "cheikh." + Long.toString(System.nanoTime(), 36);
         Reponse r = envoyer("POST", "/staff-users", """
-                {"firstName":"Cheikh","lastName":"Ba","address":"Dakar","cni":"12345678901234","phone":"+221770000001",
+                {"firstName":"Cheikh","lastName":"Ba","address":"Dakar","cni":"1234567890123","phone":"+221770000001",
                  "username":"%s","role":"LIVREUR"}""".formatted(identifiant), jeton("GERANT"));
         assertThat(r.statut()).as(r.corps()).isEqualTo(201);
         JsonNode entrees = audit("&domaine=PERSONNEL");
         assertThat(contient(entrees, "a créé le compte livreur de Cheikh Ba")).isTrue();
         assertThat(envoyer("POST", "/staff-users", """
-                {"firstName":"Faux","lastName":"Manager","address":"Dakar","cni":"12345678901235","phone":"+221770000002",
+                {"firstName":"Faux","lastName":"Manager","address":"Dakar","cni":"1234567890124","phone":"+221770000002",
                  "username":"faux.manager","role":"MANAGER"}""", jeton("GERANT")).statut())
                 .as("le compte Manager reste unique").isEqualTo(409);
         assertThat(StreamSupport.stream(entrees.spliterator(), false).map(e -> e.get("action").asString()))
                 .as("ni CNI ni telephone ni mot de passe dans le journal")
-                .noneMatch(a -> a.contains("12345678901234") || a.contains("770000001"));
+                .noneMatch(a -> a.contains("1234567890123") || a.contains("770000001"));
     }
 
     @Test
