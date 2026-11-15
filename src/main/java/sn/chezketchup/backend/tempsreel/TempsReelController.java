@@ -37,12 +37,14 @@ public class TempsReelController {
     static final Duration RATTRAPAGE = Duration.ofHours(24);
 
     private final FluxCommandes flux;
+    private final FluxPublic fluxPublic;
     private final EvenementSortantRepository evenements;
     private final CommandeRepository commandes;
     private final Clock horloge;
 
     public TempsReelController(FluxCommandes flux, EvenementSortantRepository evenements,
-                               CommandeRepository commandes, Clock horloge) {
+                               CommandeRepository commandes, Clock horloge, FluxPublic fluxPublic) {
+        this.fluxPublic = fluxPublic;
         this.flux = flux;
         this.evenements = evenements;
         this.commandes = commandes;
@@ -73,5 +75,20 @@ public class TempsReelController {
         }
         flux.abonner(emetteur, role);
         return emetteur;
+    }
+
+    /**
+     * Flux PUBLIC de l'App Client (sans compte, EventSource) : evenement
+     * 'changement' {sujet} quand le catalogue, une rupture, les plats du
+     * jour, les annonces, les horaires ou les zones changent. 503 si le
+     * serveur a atteint sa limite de connexions (le client recharge alors
+     * au retour sur l'app).
+     */
+    @GetMapping(path = "/temps-reel/public", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Flux SSE public : sujets publics modifies (evenement 'changement')")
+    public org.springframework.http.ResponseEntity<SseEmitter> publicClient() {
+        SseEmitter e = fluxPublic.abonner();
+        return e == null ? org.springframework.http.ResponseEntity.status(503).build()
+                : org.springframework.http.ResponseEntity.ok(e);
     }
 }

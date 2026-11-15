@@ -97,7 +97,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/categories", "/produits", "/produits/*", "/plats-du-jour",
                                 "/accompagnements-condiments", "/annonces", "/regions",
-                                "/regions/*/secteurs", "/photos/*").permitAll()
+                                "/regions/*/secteurs", "/photos/*", "/horaires-services",
+                                "/temps-reel/public").permitAll()
                         .requestMatchers(HttpMethod.POST, "/commandes").permitAll()
                         // Suivi client sans compte : liste par numero (vue reduite) et
                         // detail avec jeton de suivi ; le service applique ces regles.

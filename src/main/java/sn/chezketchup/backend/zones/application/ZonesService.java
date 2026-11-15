@@ -10,7 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.context.ApplicationEventPublisher;
+
 import sn.chezketchup.backend.commun.audit.JournalActions;
+import sn.chezketchup.backend.commun.diffusion.ChangementPublic;
 import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.commun.erreurs.ConflitException;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
@@ -28,6 +31,8 @@ import sn.chezketchup.backend.zones.infrastructure.SecteurRepository;
 @Transactional
 public class ZonesService {
 
+    private final ApplicationEventPublisher evenements;
+
     private final RegionRepository regions;
     private final SecteurRepository secteurs;
     private final ZonesPubliques publiques;
@@ -35,7 +40,8 @@ public class ZonesService {
     private final LectureSeule lecture;
 
     public ZonesService(RegionRepository regions, SecteurRepository secteurs, ZonesPubliques publiques,
-                        JournalActions journal, LectureSeule lecture) {
+                        JournalActions journal, LectureSeule lecture, ApplicationEventPublisher evenements) {
+        this.evenements = evenements;
         this.regions = regions;
         this.secteurs = secteurs;
         this.publiques = publiques;
@@ -64,6 +70,7 @@ public class ZonesService {
 
     @CacheEvict(cacheNames = {ZonesPubliques.REGIONS, ZonesPubliques.SECTEURS}, allEntries = true)
     public RegionVue activerRegion(String code, ZonesVues.ActivationRegion s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ZONES));
         Region r = region(code);
         boolean avant = r.isActive();
         r.activer(s.active(), s.version());
@@ -77,6 +84,7 @@ public class ZonesService {
 
     @CacheEvict(cacheNames = ZonesPubliques.SECTEURS, allEntries = true)
     public SecteurVue ajouterSecteur(String regionCode, ZonesVues.NouveauSecteur s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ZONES));
         region(regionCode);
         Secteur nouveau = Secteur.manuel(regionCode, s.departement(), s.nom(), s.prixLivraison());
         if (secteurs.existsById(nouveau.getId()) || secteurs.existsByRegionCodeAndNomIgnoreCase(regionCode, s.nom().trim())) {
@@ -90,6 +98,7 @@ public class ZonesService {
 
     @CacheEvict(cacheNames = ZonesPubliques.SECTEURS, allEntries = true)
     public SecteurVue modifierSecteur(String id, ZonesVues.ModificationSecteur s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ZONES));
         Secteur secteur = secteur(id);
         secteur.verifierVersion(s.version());
         long ancienPrix = secteur.getPrixLivraison();
@@ -103,6 +112,7 @@ public class ZonesService {
 
     @CacheEvict(cacheNames = ZonesPubliques.SECTEURS, allEntries = true)
     public SecteurVue masquerSecteur(String id, ZonesVues.MasquageSecteur s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ZONES));
         Secteur secteur = secteur(id);
         secteur.verifierVersion(s.version());
         if (secteur.isEstMasque() != s.estMasque()) {
@@ -116,6 +126,7 @@ public class ZonesService {
     /** Zone ajoutee a la main uniquement ; un arrondissement officiel se masque (409 sinon). */
     @CacheEvict(cacheNames = ZonesPubliques.SECTEURS, allEntries = true)
     public void supprimerSecteur(String id) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ZONES));
         Secteur secteur = secteur(id);
         secteur.verifierSuppressible();
         secteurs.delete(secteur);

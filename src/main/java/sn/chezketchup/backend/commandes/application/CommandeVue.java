@@ -28,6 +28,7 @@ import sn.chezketchup.backend.security.Role;
  * | position GPS        | oui            | non                     | non     | oui     | non     | non              |
  * | note                | oui            | non                     | oui     | oui     | oui     | oui              |
  * | auteurs historique  | non            | non                     | oui     | oui     | oui     | oui              |
+ * | livreur (nom, tel.) | oui            | oui                     | oui     | oui     | oui     | oui              |
  *
  * Champs nuls non serialises : une donnee masquee est simplement absente.
  */
@@ -46,6 +47,8 @@ public record CommandeVue(
         String regionLivraison,
         String secteurId,
         Position positionLivraison,
+        /** Livreur en charge (nom et telephone), des le depart en livraison. */
+        Livreur livreur,
         String note,
         List<Ligne> lignes,
         long sousTotal,
@@ -63,13 +66,26 @@ public record CommandeVue(
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Ligne(String produitId, TypeLigne type, String nom, long prixUnitaire, int quantite,
-                        String accompagnementId, String accompagnementNom, Long accompagnementPrix) {
+                        String accompagnementId, String accompagnementNom, Long accompagnementPrix,
+                        List<Accompagnement> accompagnements) {
 
         static Ligne de(LigneCommande l) {
+            List<Accompagnement> liste = l.getAccompagnements().stream()
+                    .map(a -> new Accompagnement(String.valueOf(a.getAccompagnementId()), a.getNom(), a.getPrix()))
+                    .toList();
             return new Ligne(String.valueOf(l.getProduitId()), l.getType(), l.getNom(), l.getPrixUnitaire(),
                     l.getQuantite(), l.getAccompagnementId() == null ? null : String.valueOf(l.getAccompagnementId()),
-                    l.getAccompagnementNom(), l.getAccompagnementPrix());
+                    l.getAccompagnementNom(), l.getAccompagnementPrix(), liste);
         }
+    }
+
+    /** Accompagnement fige sur une ligne. */
+    public record Accompagnement(String id, String nom, long prix) {
+    }
+
+    /** {@code identifiant} (connexion du livreur) : vue du staff seulement. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Livreur(String id, String nom, String telephone, String identifiant) {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -114,6 +130,12 @@ public record CommandeVue(
                 telephone ? c.getClientTelephone() : null,
                 c.getAdresseLivraison(), c.getRegionLivraison(), c.getSecteurId(),
                 pos,
+                // Coordonnees professionnelles du livreur : montrees au client
+                // (meme en vue reduite, pour qu'il puisse le joindre) et au staff.
+                c.getLivreurNom() != null
+                        ? new Livreur(String.valueOf(c.getLivreurId()), c.getLivreurNom(), c.getLivreurTelephone(),
+                                auteurs ? c.getLivreurIdentifiant() : null)
+                        : null,
                 note ? c.getNote() : null,
                 c.getLignes().stream().map(Ligne::de).toList(),
                 c.getSousTotal(), c.getFraisLivraison(), c.getTotal(),

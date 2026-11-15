@@ -17,12 +17,16 @@ public record ProduitVue(
         StatutPublication statut,
         Disponibilite disponibilite,
         boolean tendance,
+        /** AUTO (les plus commandes), OUI ou NON (force par le Gerant). */
+        String tendanceMode,
+        /** Quantite commandee sur 30 jours : ordre de popularite. */
+        int popularite,
         long version,
         Instant updatedAt) {
 
     public static ProduitVue de(Produit p) {
         return new ProduitVue(String.valueOf(p.getId()), p.getNom(), p.getDescription(), p.getPrix(),
                 String.valueOf(p.getCategorieId()), p.getPhotoUrl(), p.getStatut(), p.getDisponibilite(),
-                p.isTendance(), p.getVersion(), p.getModifieLe());
+                p.isTendance(), p.getTendanceMode(), p.getVentesRecentes(), p.getVersion(), p.getModifieLe());
     }
 }

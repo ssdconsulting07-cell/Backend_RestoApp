@@ -3,7 +3,17 @@ package sn.chezketchup.backend.commandes.domaine;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -60,6 +70,12 @@ public class LigneCommande {
     @Column(name = "accompagnement_prix")
     private Long accompagnementPrix;
 
+    /** Accompagnements choisis (plusieurs possibles). Les colonnes accompagnement_* gardent le premier. */
+    @OneToMany(mappedBy = "ligne", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
+    @OrderBy("position")
+    private List<LigneAccompagnement> accompagnements = new ArrayList<>();
+
     protected LigneCommande() {
     }
 
@@ -74,14 +90,49 @@ public class LigneCommande {
         this.accompagnementId = l.accompagnementId();
         this.accompagnementNom = l.accompagnementNom();
         this.accompagnementPrix = l.accompagnementPrix();
+        for (int i = 0; i < l.accompagnements().size(); i++) {
+            accompagnements.add(new LigneAccompagnement(this, i, l.accompagnements().get(i)));
+        }
+    }
+
+    /** Accompagnement verifie et tarife par le serveur. */
+    public record AccompagnementFige(long id, String nom, long prix) {
     }
 
     /** Ligne verifiee et tarifee par le serveur, prete a etre figee. */
+    /**
+     * Ligne verifiee et tarifee par le serveur, prete a etre figee. Prix
+     * unitaire = prix de l'article + somme des accompagnements.
+     */
     public record LigneTarifee(TypeLigne type, long produitId, String nom, long prixUnitaire, int quantite,
-                               Long accompagnementId, String accompagnementNom, Long accompagnementPrix) {
+                               List<AccompagnementFige> accompagnements) {
+
+        public LigneTarifee {
+            accompagnements = accompagnements == null ? List.of() : List.copyOf(accompagnements);
+        }
+
+        /** Ancienne forme (un accompagnement au plus). */
+        public LigneTarifee(TypeLigne type, long produitId, String nom, long prixUnitaire, int quantite,
+                            Long accompagnementId, String accompagnementNom, Long accompagnementPrix) {
+            this(type, produitId, nom, prixUnitaire, quantite, accompagnementId == null ? List.of()
+                    : List.of(new AccompagnementFige(accompagnementId, accompagnementNom,
+                            accompagnementPrix == null ? 0 : accompagnementPrix)));
+        }
 
         public long montant() {
             return prixUnitaire * quantite;
+        }
+
+        public Long accompagnementId() {
+            return accompagnements.isEmpty() ? null : accompagnements.get(0).id();
+        }
+
+        public String accompagnementNom() {
+            return accompagnements.isEmpty() ? null : accompagnements.get(0).nom();
+        }
+
+        public Long accompagnementPrix() {
+            return accompagnements.isEmpty() ? null : accompagnements.get(0).prix();
         }
     }
 
@@ -115,6 +166,10 @@ public class LigneCommande {
 
     public String getAccompagnementNom() {
         return accompagnementNom;
+    }
+
+    public List<LigneAccompagnement> getAccompagnements() {
+        return List.copyOf(accompagnements);
     }
 
     public Long getAccompagnementPrix() {

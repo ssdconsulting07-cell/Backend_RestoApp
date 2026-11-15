@@ -15,7 +15,7 @@ public interface PlatDuJourRepository extends JpaRepository<PlatDuJour, Long> {
     @Query("""
             select p from PlatDuJour p
             where (:statut is null or p.statut = :statut)
-              and (:jour is null or p.jour = :jour)
-            order by p.jour, p.nom""")
+              and (:jour is null or :jour member of p.jours)
+            order by p.nom""")
     List<PlatDuJour> rechercher(@Param("statut") StatutPublication statut, @Param("jour") JourSemaine jour);
 }

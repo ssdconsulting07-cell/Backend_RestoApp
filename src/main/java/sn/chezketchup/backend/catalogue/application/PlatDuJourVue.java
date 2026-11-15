@@ -14,12 +14,15 @@ public record PlatDuJourVue(
         long prix,
         String photoUrl,
         JourSemaine jour,
+        java.util.Set<JourSemaine> jours,
+        boolean dejeuner,
+        boolean diner,
         StatutPublication statut,
         long version,
         Instant updatedAt) {
 
     public static PlatDuJourVue de(PlatDuJour p) {
         return new PlatDuJourVue(String.valueOf(p.getId()), p.getNom(), p.getDescription(), p.getPrix(),
-                p.getPhotoUrl(), p.getJour(), p.getStatut(), p.getVersion(), p.getModifieLe());
+                p.getPhotoUrl(), p.getJour(), p.getJours(), p.isDejeuner(), p.isDiner(), p.getStatut(), p.getVersion(), p.getModifieLe());
     }
 }

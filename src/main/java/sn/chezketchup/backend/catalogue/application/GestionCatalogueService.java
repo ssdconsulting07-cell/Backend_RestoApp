@@ -19,7 +19,10 @@ import sn.chezketchup.backend.catalogue.infrastructure.AccompagnementCondimentRe
 import sn.chezketchup.backend.catalogue.infrastructure.CategorieRepository;
 import sn.chezketchup.backend.catalogue.infrastructure.PlatDuJourRepository;
 import sn.chezketchup.backend.catalogue.infrastructure.ProduitRepository;
+import org.springframework.context.ApplicationEventPublisher;
+
 import sn.chezketchup.backend.commun.audit.JournalActions;
+import sn.chezketchup.backend.commun.diffusion.ChangementPublic;
 import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.commun.erreurs.ConflitException;
 import sn.chezketchup.backend.commun.erreurs.RequeteInvalideException;
@@ -40,10 +43,12 @@ public class GestionCatalogueService {
     private final PlatDuJourRepository plats;
     private final AccompagnementCondimentRepository accompagnements;
     private final JournalActions journal;
+    private final ApplicationEventPublisher evenements;
 
     public GestionCatalogueService(CategorieRepository categories, ProduitRepository produits,
                                    PlatDuJourRepository plats, AccompagnementCondimentRepository accompagnements,
-                                   JournalActions journal) {
+                                   JournalActions journal, ApplicationEventPublisher evenements) {
+        this.evenements = evenements;
         this.categories = categories;
         this.produits = produits;
         this.plats = plats;
@@ -55,6 +60,7 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.CATEGORIES, allEntries = true)
     public CategorieVue creerCategorie(Saisies.Categorie s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         if (categories.existsByNomIgnoreCase(s.nom().trim())) {
             throw nomDejaUtilise();
         }
@@ -65,6 +71,7 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = {CatalogueCachePublic.CATEGORIES, CatalogueCachePublic.PRODUITS}, allEntries = true)
     public CategorieVue modifierCategorie(long id, Saisies.Categorie s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         Categorie c = categorie(id);
         c.verifierVersion(s.version());
         if (categories.existsByNomIgnoreCaseAndIdNot(s.nom().trim(), id)) {
@@ -82,6 +89,7 @@ public class GestionCatalogueService {
      */
     @CacheEvict(cacheNames = {CatalogueCachePublic.CATEGORIES, CatalogueCachePublic.PRODUITS}, allEntries = true)
     public CategorieVue changerStatutCategorie(long id, Saisies.ChangementStatut s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         Categorie c = categorie(id);
         c.verifierVersion(s.version());
         StatutPublication avant = c.getStatut();
@@ -120,15 +128,17 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PRODUITS, allEntries = true)
     public ProduitVue creerProduit(Saisies.Produit s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         Long categorieId = categorieUtilisable(s.categorieId());
         Produit p = produits.save(new Produit(s.nom(), s.description(), s.prix(), categorieId, s.photoUrl(),
-                s.disponibilite(), Boolean.TRUE.equals(s.tendance())));
+                s.disponibilite(), s.tendanceManuelleCreation()));
         journal.enregistrer(Domaine.PRODUIT, "CREATION", id(p.getId()), "a créé le produit " + guillemets(p.getNom()));
         return ProduitVue.de(p);
     }
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PRODUITS, allEntries = true)
     public ProduitVue modifierProduit(long id, Saisies.Produit s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         Produit p = produit(id);
         p.verifierVersion(s.version());
         Long categorieId = s.categorieId().equals(String.valueOf(p.getCategorieId()))
@@ -137,13 +147,14 @@ public class GestionCatalogueService {
         Disponibilite ancienneDispo = p.getDisponibilite();
         p.modifier(s.nom(), s.description(), s.prix(), categorieId, s.photoUrl(),
                 s.disponibilite() != null ? s.disponibilite() : ancienneDispo,
-                s.tendance() != null ? s.tendance() : p.isTendance());
+                s.tendanceManuelleModification(p.getTendanceManuelle(), p.isTendance()));
         journal.enregistrer(Domaine.PRODUIT, "MODIFICATION", id(id), messageModification(p, ancienPrix, ancienneDispo));
         return ProduitVue.de(p);
     }
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PRODUITS, allEntries = true)
     public ProduitVue changerStatutProduit(long id, Saisies.ChangementStatut s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         Produit p = produit(id);
         p.verifierVersion(s.version());
         StatutPublication avant = p.getStatut();
@@ -178,22 +189,27 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PLATS_DU_JOUR, allEntries = true)
     public PlatDuJourVue creerPlat(Saisies.PlatDuJour s) {
-        PlatDuJour p = plats.save(new PlatDuJour(s.nom(), s.description(), s.prix(), s.photoUrl(), s.jour()));
+        signaler(ChangementPublic.Sujet.PLATS_DU_JOUR);
+        PlatDuJour p = plats.save(new PlatDuJour(s.nom(), s.description(), s.prix(), s.photoUrl(), s.joursChoisis(),
+                s.dejeunerChoisi(), s.dinerChoisi()));
         journal.enregistrer(Domaine.PRODUIT, "CREATION", id(p.getId()), "a créé le plat du jour " + guillemets(p.getNom()));
         return PlatDuJourVue.de(p);
     }
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PLATS_DU_JOUR, allEntries = true)
     public PlatDuJourVue modifierPlat(long id, Saisies.PlatDuJour s) {
+        signaler(ChangementPublic.Sujet.PLATS_DU_JOUR);
         PlatDuJour p = plat(id);
         p.verifierVersion(s.version());
-        p.modifier(s.nom(), s.description(), s.prix(), s.photoUrl(), s.jour());
+        p.modifier(s.nom(), s.description(), s.prix(), s.photoUrl(), s.joursChoisis(), s.dejeunerChoisi(),
+                s.dinerChoisi());
         journal.enregistrer(Domaine.PRODUIT, "MODIFICATION", id(id), "a modifié le plat du jour " + guillemets(p.getNom()));
         return PlatDuJourVue.de(p);
     }
 
     @CacheEvict(cacheNames = CatalogueCachePublic.PLATS_DU_JOUR, allEntries = true)
     public PlatDuJourVue changerStatutPlat(long id, Saisies.ChangementStatut s) {
+        signaler(ChangementPublic.Sujet.PLATS_DU_JOUR);
         PlatDuJour p = plat(id);
         p.verifierVersion(s.version());
         StatutPublication avant = p.getStatut();
@@ -208,6 +224,7 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.ACCOMPAGNEMENTS, allEntries = true)
     public AccompagnementCondimentVue creerAccompagnement(Saisies.AccompagnementCondiment s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         AccompagnementCondiment a = accompagnements.save(new AccompagnementCondiment(s.nom(), s.prix(), s.type()));
         journal.enregistrer(Domaine.PRODUIT, "CREATION", id(a.getId()), "a créé " + guillemets(a.getNom()));
         return AccompagnementCondimentVue.de(a);
@@ -215,6 +232,7 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.ACCOMPAGNEMENTS, allEntries = true)
     public AccompagnementCondimentVue modifierAccompagnement(long id, Saisies.AccompagnementCondiment s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         AccompagnementCondiment a = accompagnement(id);
         a.verifierVersion(s.version());
         a.modifier(s.nom(), s.prix(), s.type());
@@ -224,6 +242,7 @@ public class GestionCatalogueService {
 
     @CacheEvict(cacheNames = CatalogueCachePublic.ACCOMPAGNEMENTS, allEntries = true)
     public AccompagnementCondimentVue changerStatutAccompagnement(long id, Saisies.ChangementStatut s) {
+        signaler(ChangementPublic.Sujet.CATALOGUE);
         AccompagnementCondiment a = accompagnement(id);
         a.verifierVersion(s.version());
         StatutPublication avant = a.getStatut();
@@ -268,5 +287,10 @@ public class GestionCatalogueService {
 
     private static String id(Long id) {
         return String.valueOf(id);
+    }
+
+    /** Les App Client connectees rechargent ce sujet apres validation (temps reel). */
+    private void signaler(ChangementPublic.Sujet sujet) {
+        evenements.publishEvent(new ChangementPublic(sujet));
     }
 }

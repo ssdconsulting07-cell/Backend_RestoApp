@@ -8,6 +8,8 @@ import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import sn.chezketchup.backend.auth.StaffUser;
+import sn.chezketchup.backend.auth.StaffUserRepository;
 import sn.chezketchup.backend.commandes.domaine.Commande;
 import sn.chezketchup.backend.commandes.domaine.Enums.StatutCommande;
 import sn.chezketchup.backend.commandes.infrastructure.CommandeRepository;
@@ -35,15 +37,23 @@ public class ChangementStatutCommande {
     private final EvenementSortantRepository evenements;
     private final JournalActions journal;
     private final Clock horloge;
+    private final StaffUserRepository personnel;
 
     public ChangementStatutCommande(CommandeRepository commandes, EvenementSortantRepository evenements,
-                                    JournalActions journal, Clock horloge) {
+                                    JournalActions journal, Clock horloge, StaffUserRepository personnel) {
+        this.personnel = personnel;
         this.commandes = commandes;
         this.evenements = evenements;
         this.journal = journal;
         this.horloge = horloge;
     }
 
+    /**
+     * Depart en livraison : la commande n'a pas encore de livreur ; le
+     * premier livreur qui la prend l'obtient (prendreEnCharge). Si un livreur
+     * fait lui-meme passer la commande en livraison, elle est a lui.
+     * Seul le livreur attribue peut la marquer livree.
+     */
     @Transactional
     public CommandeVue appliquer(long id, StatutCommande cible, Long versionLue, Role role, String acteur) {
         Commande c = commandes.verrouiller(id)
@@ -54,11 +64,59 @@ public class ChangementStatutCommande {
                     "Cette commande a change entre-temps. Actualisez la liste.");
         }
         Instant maintenant = Instant.now(horloge);
+        if (cible == StatutCommande.LIVREE && role == Role.LIVREUR && c.getLivreurId() != null) {
+            StaffUser moi = personnel.findByUsernameIgnoreCase(acteur).orElse(null);
+            if (moi == null || !moi.getId().equals(c.getLivreurId())) {
+                throw new ConflitException("COMMANDE_AUTRE_LIVREUR",
+                        "Cette commande est livrée par " + c.getLivreurNom() + ".");
+            }
+        }
         c.appliquerTransition(cible, role, acteur, maintenant);
+        if (cible == StatutCommande.EN_LIVRAISON && role == Role.LIVREUR) {
+            personnel.findByUsernameIgnoreCase(acteur)
+                    .ifPresent(l -> c.attribuerLivreur(l.getId(), l.getUsername(), nomComplet(l), l.getPhone()));
+        }
         evenements.save(new EvenementSortant(EvenementSortant.Type.STATUT_CHANGE, c.getId(), maintenant));
         journal.enregistrer(Domaine.COMMANDE, "STATUT_" + cible, String.valueOf(id), message(c, cible));
         commandes.flush();
         return CommandeVue.pourStaff(c, role);
+    }
+
+    /**
+     * Prise en charge par un livreur d'une commande partie en livraison, sous
+     * verrou : si deux livreurs la prennent au meme instant, le second recoit
+     * 409 avec le nom de celui qui l'a. Reprendre sa propre commande ne
+     * change rien.
+     */
+    @Transactional
+    public CommandeVue prendreEnCharge(long id, String acteur) {
+        Commande c = commandes.verrouiller(id)
+                .filter(x -> VisibiliteCommandes.voit(Role.LIVREUR, x))
+                .orElseThrow(() -> new RessourceIntrouvableException("Commande introuvable."));
+        StaffUser moi = personnel.findByUsernameIgnoreCase(acteur)
+                .orElseThrow(() -> new RessourceIntrouvableException("Livreur introuvable."));
+        if (c.getStatut() != StatutCommande.EN_LIVRAISON) {
+            throw new ConflitException("STATUT_INCOMPATIBLE", "Cette commande n'est pas en attente d'un livreur.");
+        }
+        if (c.getLivreurId() != null) {
+            if (c.getLivreurId().equals(moi.getId())) {
+                return CommandeVue.pourStaff(c, Role.LIVREUR);
+            }
+            throw new ConflitException("DEJA_PRISE", "Cette commande a déjà été prise par " + c.getLivreurNom() + ".");
+        }
+        Instant maintenant = Instant.now(horloge);
+        c.attribuerLivreur(moi.getId(), moi.getUsername(), nomComplet(moi), moi.getPhone());
+        evenements.save(new EvenementSortant(EvenementSortant.Type.STATUT_CHANGE, c.getId(), maintenant));
+        journal.enregistrer(Domaine.COMMANDE, "PRISE_EN_CHARGE", String.valueOf(id),
+                "a pris en charge la livraison de la commande #" + c.getId());
+        commandes.flush();
+        return CommandeVue.pourStaff(c, Role.LIVREUR);
+    }
+
+    public static String nomComplet(StaffUser u) {
+        String nom = ((u.getFirstName() == null ? "" : u.getFirstName()) + " "
+                + (u.getLastName() == null ? "" : u.getLastName())).trim();
+        return nom.isEmpty() ? u.getUsername() : nom;
     }
 
     static String message(Commande c, StatutCommande cible) {

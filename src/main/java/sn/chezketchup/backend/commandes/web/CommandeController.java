@@ -99,4 +99,12 @@ public class CommandeController {
         return changement.appliquer(Identifiants.chemin(id, "Commande"), demande.statut(), demande.version(),
                 UtilisateurCourant.role().orElseThrow(), UtilisateurCourant.identifiant().orElseThrow());
     }
+
+    @PostMapping("/{id}/prise-en-charge")
+    @PreAuthorize("hasRole('LIVREUR')")
+    @Operation(summary = "Le livreur prend une commande partie en livraison (le premier qui la prend l'a ; 409 sinon)")
+    public CommandeVue prendreEnCharge(@PathVariable String id) {
+        return changement.prendreEnCharge(Identifiants.chemin(id, "Commande"),
+                UtilisateurCourant.identifiant().orElseThrow());
+    }
 }

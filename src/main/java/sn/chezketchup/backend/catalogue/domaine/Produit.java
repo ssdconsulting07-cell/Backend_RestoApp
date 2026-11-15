@@ -36,26 +36,54 @@ public class Produit extends ElementPublie {
     @Column(nullable = false, length = 10)
     private Disponibilite disponibilite = Disponibilite.EN_STOCK;
 
+    /** Valeur effective du badge (manuelle si forcee, sinon automatique). */
     @Column(nullable = false)
     private boolean tendance;
+
+    /** Badge force par le Gerant : null = automatique (les plus commandes). */
+    @Column(name = "tendance_manuelle")
+    private Boolean tendanceManuelle;
+
+    /** Parmi les plus commandes des 30 derniers jours (calcul periodique). */
+    @Column(name = "tendance_auto", nullable = false)
+    private boolean tendanceAuto;
+
+    /** Quantite commandee sur les 30 derniers jours : ordre de popularite. */
+    @Column(name = "ventes_recentes", nullable = false)
+    private int ventesRecentes;
 
     protected Produit() {
     }
 
     public Produit(String nom, String description, long prix, Long categorieId, String photoUrl,
-                   Disponibilite disponibilite, boolean tendance) {
-        modifier(nom, description, prix, categorieId, photoUrl, disponibilite, tendance);
+                   Disponibilite disponibilite, Boolean tendanceManuelle) {
+        modifier(nom, description, prix, categorieId, photoUrl, disponibilite, tendanceManuelle);
     }
 
     public void modifier(String nom, String description, long prix, Long categorieId, String photoUrl,
-                         Disponibilite disponibilite, boolean tendance) {
+                         Disponibilite disponibilite, Boolean tendanceManuelle) {
         this.nom = nom.trim();
         this.description = vide(description);
         this.prix = prix;
         this.categorieId = categorieId;
         this.photoUrl = vide(photoUrl);
         this.disponibilite = disponibilite != null ? disponibilite : Disponibilite.EN_STOCK;
-        this.tendance = tendance;
+        this.tendanceManuelle = tendanceManuelle;
+        recalculerTendance();
+    }
+
+    /** Resultat du calcul de popularite. Retourne vrai si le badge affiche change. */
+    public boolean appliquerPopularite(int ventes, boolean parmiLesPlusCommandes) {
+        boolean avant = tendance;
+        boolean change = ventes != ventesRecentes || parmiLesPlusCommandes != tendanceAuto;
+        this.ventesRecentes = ventes;
+        this.tendanceAuto = parmiLesPlusCommandes;
+        recalculerTendance();
+        return change || avant != tendance;
+    }
+
+    private void recalculerTendance() {
+        this.tendance = tendanceManuelle != null ? tendanceManuelle : tendanceAuto;
     }
 
     /** Reaffectation lors de l'archivage de la categorie d'origine. */
@@ -93,5 +121,22 @@ public class Produit extends ElementPublie {
 
     public boolean isTendance() {
         return tendance;
+    }
+
+    public Boolean getTendanceManuelle() {
+        return tendanceManuelle;
+    }
+
+    /** AUTO, OUI ou NON (choix du Gerant). */
+    public String getTendanceMode() {
+        return tendanceManuelle == null ? "AUTO" : (tendanceManuelle ? "OUI" : "NON");
+    }
+
+    public boolean isTendanceAuto() {
+        return tendanceAuto;
+    }
+
+    public int getVentesRecentes() {
+        return ventesRecentes;
     }
 }
