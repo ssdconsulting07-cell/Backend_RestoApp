@@ -125,6 +125,20 @@ public class Commande {
     @Column(name = "modifie_le", nullable = false)
     private Instant modifieLe;
 
+    /** Livreur attribue au depart en livraison (coordonnees figees, montrees au client). */
+    @Column(name = "livreur_id")
+    private Long livreurId;
+
+    /** Identifiant de connexion du livreur : son espace reconnait SES livraisons. */
+    @Column(name = "livreur_identifiant", length = 60)
+    private String livreurIdentifiant;
+
+    @Column(name = "livreur_nom", length = 160)
+    private String livreurNom;
+
+    @Column(name = "livreur_telephone", length = 30)
+    private String livreurTelephone;
+
     @OneToMany(mappedBy = "commande", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position")
     private List<LigneCommande> lignes = new ArrayList<>();
@@ -241,6 +255,29 @@ public class Commande {
     private void changerStatut(StatutCommande cible, String acteur, String role, Instant maintenant) {
         statut = cible;
         historique.add(new ChangementStatut(this, cible, maintenant, acteur, role));
+    }
+
+    public void attribuerLivreur(long id, String identifiant, String nom, String telephone) {
+        this.livreurId = id;
+        this.livreurIdentifiant = identifiant;
+        this.livreurNom = nom;
+        this.livreurTelephone = telephone;
+    }
+
+    public Long getLivreurId() {
+        return livreurId;
+    }
+
+    public String getLivreurIdentifiant() {
+        return livreurIdentifiant;
+    }
+
+    public String getLivreurNom() {
+        return livreurNom;
+    }
+
+    public String getLivreurTelephone() {
+        return livreurTelephone;
     }
 
     public void attacherJetonSuivi(String empreinte) {

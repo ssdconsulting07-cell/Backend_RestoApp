@@ -530,7 +530,8 @@ paths:
         | PAYEE          | ANNULEE        | CUISINE            | -         |
 
         La remise LIVREE se fait apres scan du QR presente par le client
-        (contenu "SENYUMMIES-<id>").
+        (contenu "SENYUMMIES-<id>"). Si un livreur a pris la commande en
+        charge, lui seul peut la marquer LIVREE (409 COMMANDE_AUTRE_LIVREUR).
       security:
         - bearerAuth: []
       parameters:
@@ -559,6 +560,79 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /commandes/{id}/prise-en-charge:
+    post:
+      tags: [Commandes]
+      summary: Un livreur prend une commande partie en livraison
+      description: |
+        Le premier livreur qui la prend l'obtient : ses nom et telephone sont
+        figes sur la commande (champ livreur) et montres au client. 409
+        DEJA_PRISE si un autre livreur l'a deja ; reprendre la sienne ne
+        change rien.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandeId'
+      responses:
+        '200':
+          description: Commande prise en charge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commande'
+        '409':
+          description: Deja prise par un autre livreur, ou commande pas en livraison
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /horaires-services:
+    get:
+      tags: [Catalogue]
+      summary: Horaires du dejeuner et du diner (public, heure de Dakar)
+      responses:
+        '200':
+          description: Les deux services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HoraireService'
+    put:
+      tags: [Catalogue]
+      summary: Regler les horaires (Gerant)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/HoraireService'
+      responses:
+        '200':
+          description: Horaires enregistres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HoraireService'
+  /temps-reel/public:
+    get:
+      tags: [Temps reel]
+      summary: Flux SSE public de l'App Client
+      description: |
+        Evenement "changement" {"sujet": "catalogue" | "plats-du-jour" |
+        "annonces" | "horaires" | "zones"} apres chaque modification publiee :
+        l'App Client recharge le sujet par l'API publique. Aucune donnee
+        personnelle. 503 si la limite de connexions est atteinte.
+      responses:
+        '200':
+          description: Flux text/event-stream
   /paiements/init:
     post:
       tags: [Paiements]
@@ -777,7 +851,14 @@ components:
           enum: [EN_STOCK, RUPTURE]
         tendance:
           type: boolean
-          description: Mise en avant "Tendance" decidee par le Gerant
+          description: Badge "Tendance" affiche (automatique ou force par le Gerant)
+        tendanceMode:
+          type: string
+          enum: [AUTO, OUI, NON]
+          description: AUTO = les plus commandes des 30 derniers jours (recalcul horaire) ; OUI / NON = force par le Gerant
+        popularite:
+          type: integer
+          description: Quantite commandee sur 30 jours (ordre de popularite)
         updatedAt:
           type: string
           format: date-time
@@ -786,7 +867,7 @@ components:
       enum: [LUNDI, MARDI, MERCREDI, JEUDI, VENDREDI, SAMEDI, DIMANCHE]
     PlatDuJour:
       type: object
-      required: [id, nom, prix, jour, statut]
+      required: [id, nom, prix, jours, dejeuner, diner, statut]
       properties:
         id:
           type: string
@@ -801,6 +882,18 @@ components:
           nullable: true
         jour:
           $ref: '#/components/schemas/JourSemaine'
+          description: Ancien champ (premier jour). En ecriture, accepte si jours est absent.
+        jours:
+          type: array
+          items:
+            $ref: '#/components/schemas/JourSemaine'
+          description: Jours ou le plat est propose (au moins un)
+        dejeuner:
+          type: boolean
+          description: Propose au dejeuner (absent en ecriture = oui)
+        diner:
+          type: boolean
+          description: Propose au diner (absent en ecriture = oui)
         statut:
           $ref: '#/components/schemas/StatutPublication'
         updatedAt:
@@ -963,6 +1056,41 @@ components:
         accompagnementPrix:
           type: number
           nullable: true
+          description: Ancien champ (un seul accompagnement)
+        accompagnementIds:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+          description: En ecriture - plusieurs accompagnements publies (prefere a accompagnementId / accompagnementNom)
+        accompagnements:
+          type: array
+          readOnly: true
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              nom: { type: string }
+              prix: { type: number }
+          description: En lecture - accompagnements figes (prix unitaire = prix article + somme)
+    HoraireService:
+      type: object
+      properties:
+        service:
+          type: string
+          enum: [DEJEUNER, DINER]
+        debut:
+          type: string
+          example: "11:00"
+        fin:
+          type: string
+          example: "15:00"
+          description: Peut etre avant debut (service qui passe minuit, ex. 18:00 - 01:00)
+        passeMinuit:
+          type: boolean
+          readOnly: true
+        version:
+          type: integer
     CommandeCreation:
       type: object
       required: [canal, mode, lignes]
@@ -1038,6 +1166,14 @@ components:
         regionLivraison:
           type: string
           nullable: true
+        livreur:
+          type: object
+          nullable: true
+          description: Livreur qui a pris la commande en charge (nom, telephone), visible du client
+          properties:
+            id: { type: string }
+            nom: { type: string }
+            telephone: { type: string }
         positionLivraison:
           type: object
           nullable: true

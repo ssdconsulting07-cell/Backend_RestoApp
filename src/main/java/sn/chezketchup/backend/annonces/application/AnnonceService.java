@@ -12,7 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.chezketchup.backend.annonces.domaine.Annonce;
 import sn.chezketchup.backend.annonces.infrastructure.AnnonceRepository;
+import org.springframework.context.ApplicationEventPublisher;
+
 import sn.chezketchup.backend.commun.audit.JournalActions;
+import sn.chezketchup.backend.commun.diffusion.ChangementPublic;
 import sn.chezketchup.backend.commun.audit.JournalActions.Domaine;
 import sn.chezketchup.backend.commun.erreurs.RessourceIntrouvableException;
 import sn.chezketchup.backend.commun.publication.StatutPublication;
@@ -24,13 +27,16 @@ import sn.chezketchup.backend.commun.transaction.LectureSeule;
 @Transactional
 public class AnnonceService {
 
+    private final ApplicationEventPublisher evenements;
+
     private final AnnonceRepository annonces;
     private final AnnoncesPubliques publiques;
     private final JournalActions journal;
     private final LectureSeule lecture;
 
     public AnnonceService(AnnonceRepository annonces, AnnoncesPubliques publiques, JournalActions journal,
-                          LectureSeule lecture) {
+                          LectureSeule lecture, ApplicationEventPublisher evenements) {
+        this.evenements = evenements;
         this.annonces = annonces;
         this.publiques = publiques;
         this.journal = journal;
@@ -49,6 +55,7 @@ public class AnnonceService {
 
     @CacheEvict(cacheNames = AnnoncesPubliques.CACHE, allEntries = true)
     public AnnonceVue creer(AnnonceSaisie s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ANNONCES));
         Annonce a = new Annonce(s.titre());
         a.remplacerSlides(slides(s));
         a = annonces.save(a);
@@ -59,6 +66,7 @@ public class AnnonceService {
 
     @CacheEvict(cacheNames = AnnoncesPubliques.CACHE, allEntries = true)
     public AnnonceVue modifier(long id, AnnonceSaisie s) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ANNONCES));
         Annonce a = annonce(id);
         a.verifierVersion(s.version());
         a.renommer(s.titre());
@@ -70,6 +78,7 @@ public class AnnonceService {
 
     @CacheEvict(cacheNames = AnnoncesPubliques.CACHE, allEntries = true)
     public AnnonceVue changerStatut(long id, StatutPublication cible, Long version) {
+        evenements.publishEvent(new ChangementPublic(ChangementPublic.Sujet.ANNONCES));
         Annonce a = annonce(id);
         a.verifierVersion(version);
         StatutPublication avant = a.getStatut();

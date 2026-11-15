@@ -34,8 +34,42 @@ public final class Saisies {
             @NotBlank String categorieId,
             @UrlImage String photoUrl,
             Disponibilite disponibilite,
+            /** Ancien champ : badge oui / non. Prefere tendanceMode. */
             Boolean tendance,
+            /** AUTO, OUI ou NON. */
+            @jakarta.validation.constraints.Pattern(regexp = "AUTO|OUI|NON") String tendanceMode,
             Long version) {
+
+        /** Badge force (TRUE / FALSE) ou automatique (null), a la creation. */
+        public Boolean tendanceManuelleCreation() {
+            if (tendanceMode != null) {
+                return mode(tendanceMode);
+            }
+            return Boolean.TRUE.equals(tendance) ? Boolean.TRUE : null;
+        }
+
+        /**
+         * A la modification : tendanceMode s'il est envoye ; sinon l'ancien
+         * booleen ne force le badge que s'il CHANGE l'affichage (un ancien
+         * Manager qui renvoie la valeur lue ne fige pas l'automatique).
+         */
+        public Boolean tendanceManuelleModification(Boolean actuelle, boolean affichee) {
+            if (tendanceMode != null) {
+                return mode(tendanceMode);
+            }
+            if (tendance == null || tendance == affichee) {
+                return actuelle;
+            }
+            return tendance;
+        }
+
+        private static Boolean mode(String m) {
+            return switch (m) {
+                case "OUI" -> Boolean.TRUE;
+                case "NON" -> Boolean.FALSE;
+                default -> null;
+            };
+        }
     }
 
     public record PlatDuJour(
@@ -43,8 +77,28 @@ public final class Saisies {
             @Size(max = 300) String description,
             @NotNull @Positive Long prix,
             @UrlImage String photoUrl,
-            @NotNull JourSemaine jour,
+            /** Ancien champ (un seul jour), accepte si {@code jours} est absent. */
+            JourSemaine jour,
+            java.util.List<JourSemaine> jours,
+            /** Absents = les deux services. */
+            Boolean dejeuner,
+            Boolean diner,
             Long version) {
+
+        public java.util.List<JourSemaine> joursChoisis() {
+            if (jours != null && !jours.isEmpty()) {
+                return jours;
+            }
+            return jour == null ? java.util.List.of() : java.util.List.of(jour);
+        }
+
+        public boolean dejeunerChoisi() {
+            return dejeuner == null || dejeuner;
+        }
+
+        public boolean dinerChoisi() {
+            return diner == null || diner;
+        }
     }
 
     public record AccompagnementCondiment(

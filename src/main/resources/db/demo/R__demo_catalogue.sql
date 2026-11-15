@@ -57,6 +57,9 @@ INSERT INTO `plats_du_jour` (`id`, `nom`, `description`, `prix`, `photo_url`, `j
 AS nouveau
 ON DUPLICATE KEY UPDATE `nom` = nouveau.`nom`, `description` = nouveau.`description`, `prix` = nouveau.`prix`, `photo_url` = nouveau.`photo_url`, `jour` = nouveau.`jour`, `statut` = nouveau.`statut`, `version` = `plats_du_jour`.`version` + 1, `modifie_le` = nouveau.`modifie_le`;
 
+-- Jours des plats (table plats_du_jour_jours, V8) : un jour par plat de demonstration.
+INSERT IGNORE INTO `plats_du_jour_jours` (`plat_id`, `jour`) SELECT `id`, `jour` FROM `plats_du_jour`;
+
 INSERT INTO `accompagnements_condiments` (`id`, `nom`, `prix`, `type`, `statut`, `version`, `cree_le`, `modifie_le`) VALUES
   (1, 'Frites maison', 1500, 'ACCOMPAGNEMENT', 'ACTIF', 0, '2026-10-20 09:00:00', '2026-10-20 09:00:00'),
   (2, 'Salade', 400, 'ACCOMPAGNEMENT', 'ACTIF', 0, '2026-10-20 09:00:00', '2026-10-20 09:00:00'),

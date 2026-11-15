@@ -53,6 +53,8 @@ public record CommandeSaisie(
             TypeLigne type,
             @NotNull @Min(1) @Max(50) Integer quantite,
             @Size(max = 30) String accompagnementId,
+            /** Plusieurs accompagnements (prefere a accompagnementId). */
+            @Size(max = 10) java.util.List<@jakarta.validation.constraints.NotBlank @Size(max = 30) String> accompagnementIds,
             @Size(max = 80) String accompagnementNom,
             @PositiveOrZero Long accompagnementPrix,
             @PositiveOrZero Long prixUnitaire,

@@ -6,6 +6,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +34,7 @@ class CommandesApiIT extends IntegrationTest {
     private static String burgers;
     private static String burger;
     private static String frites;
+    private static String alloco;
     private static String boisson;
     private static String platDuJour;
     private static String platAutreJour;
@@ -68,10 +70,25 @@ class CommandesApiIT extends IntegrationTest {
         int jour = LocalDate.now(Horloge.DAKAR).getDayOfWeek().getValue() - 1;
         platDuJour = creer("/plats-du-jour", "{\"nom\":\"Plat test\",\"prix\":3000,\"jour\":\"" + JOURS[jour] + "\"}");
         platAutreJour = creer("/plats-du-jour", "{\"nom\":\"Plat demain\",\"prix\":3000,\"jour\":\"" + JOURS[(jour + 1) % 7] + "\"}");
+        alloco = creer("/accompagnements-condiments", "{\"nom\":\"" + unique("Alloco") + "\",\"prix\":500,\"type\":\"ACCOMPAGNEMENT\"}");
+        dejeunerEnCours();
         jdbc.update("INSERT IGNORE INTO regions (code, nom, active, version, modifie_le) VALUES ('CMDREG', 'Cmd', 1, 0, NOW(6))");
         jdbc.update("INSERT IGNORE INTO secteurs (id, region_code, departement, nom, prix_livraison, est_officiel, est_masque, "
                 + "version, modifie_le) VALUES ('CMDREG-CENTRE', 'CMDREG', 'Dep', 'Centre', 1000, 1, 0, 0, NOW(6)), "
                 + "('CMDREG-MASQUE', 'CMDREG', 'Dep', 'Masque', 1000, 1, 1, 0, NOW(6))");
+    }
+
+    /**
+     * Le plat du jour ne se commande que pendant son service : le dejeuner est
+     * regle autour de l'heure du test (sans passer minuit).
+     */
+    private void dejeunerEnCours() {
+        LocalTime maintenant = LocalTime.now(Horloge.DAKAR).withSecond(0).withNano(0);
+        LocalTime debut = maintenant.getHour() == 0 ? LocalTime.MIDNIGHT : maintenant.minusHours(1);
+        LocalTime fin = maintenant.getHour() == 23 ? LocalTime.of(23, 59) : maintenant.plusHours(1);
+        Reponse r = envoyer("PUT", "/horaires-services", """
+                [{"service":"DEJEUNER","debut":"%s","fin":"%s"}]""".formatted(debut, fin), jeton("GERANT"));
+        assertThat(r.statut()).isEqualTo(200);
     }
 
     /** Commande telle que l'App Client l'envoie aujourd'hui (statut PAYEE et prix inclus). */
@@ -141,6 +158,19 @@ class CommandesApiIT extends IntegrationTest {
         Reponse sansMontants = passer(commandeApp(telephone(), "{\"produitId\":\"" + burger + "\",\"quantite\":1}", 0, 1000)
                 .replace("\"sousTotal\":0,\"fraisLivraison\":1000,\"total\":1000,", ""), null);
         assertThat(sansMontants.statut()).as("montants facultatifs : le serveur calcule").isEqualTo(201);
+    }
+
+    @Test
+    void plusieursAccompagnementsSurUneLigne() {
+        Reponse r = passer(commandeApp(telephone(), "{\"produitId\":\"" + burger + "\",\"quantite\":2,"
+                + "\"accompagnementIds\":[\"" + frites + "\",\"" + alloco + "\"],\"prixUnitaire\":5500}", 11000, 1000), null);
+        assertThat(r.statut()).isEqualTo(201);
+        JsonNode ligne = r.json().get("lignes").get(0);
+        assertThat(ligne.get("prixUnitaire").asLong()).isEqualTo(5500);
+        assertThat(ligne.get("accompagnements")).hasSize(2);
+        Reponse plat = passer(commandeApp(telephone(), "{\"produitId\":\"" + platDuJour + "\",\"type\":\"PLAT_DU_JOUR\","
+                + "\"quantite\":1,\"accompagnementIds\":[\"" + alloco + "\"]}", 3500, 1000), null);
+        assertThat(plat.statut()).as("accompagnement sur un plat du jour").isEqualTo(201);
     }
 
     @Test
