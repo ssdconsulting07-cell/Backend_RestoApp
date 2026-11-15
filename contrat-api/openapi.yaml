@@ -743,7 +743,7 @@ components:
           type: string
         cni:
           type: string
-          pattern: '^[0-9]{14}$'
+          pattern: '^[0-9]{13}$'
         phone:
           type: string
         username:
@@ -764,7 +764,7 @@ components:
           type: string
         cni:
           type: string
-          pattern: '^[0-9]{14}$'
+          pattern: '^[0-9]{13}$'
         phone:
           type: string
         username:
