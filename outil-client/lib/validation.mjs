@@ -22,7 +22,9 @@ const MOTS_SECRETS = /(mot.?de.?passe|password|passwd|mdp|secret|token|jeton|api
 let validateurs;
 function compiler() {
   if (validateurs) return validateurs;
-  const ajv = new Ajv({ allErrors: true, strict: false });
+  // allErrors voulu : l'outil tourne hors ligne sur les fichiers fournis par l'operateur et doit lister
+  // toutes les erreurs d'un coup (aucune entree reseau, pas de risque de deni de service).
+  const ajv = new Ajv({ allErrors: true, strict: false }); // nosemgrep: javascript.ajv.security.audit.ajv-allerrors-true
   ajvFormats(ajv);
   ajvErrors(ajv);
   ajv.addSchema(lireSchema('donnees.schema.json'));
