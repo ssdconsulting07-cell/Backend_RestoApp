@@ -28,6 +28,7 @@ import sn.chezketchup.backend.commun.idempotence.Idempotence;
 import sn.chezketchup.backend.commun.securite.UtilisateurCourant;
 import sn.chezketchup.backend.paiements.application.PaiementService;
 import sn.chezketchup.backend.paiements.application.PaiementService.IssuePaiement;
+import sn.chezketchup.backend.restaurant.OffreRestaurant;
 import sn.chezketchup.backend.security.Role;
 import sn.chezketchup.backend.tempsreel.EvenementSortant;
 import sn.chezketchup.backend.tempsreel.EvenementSortantRepository;
@@ -55,12 +56,13 @@ public class CreationCommandeTransaction {
     private final Idempotence idempotence;
     private final ObjectMapper json;
     private final Clock horloge;
+    private final OffreRestaurant offre;
 
     public CreationCommandeTransaction(Tarification tarification, CommandeRepository commandes,
                                        SecteurRepository secteurs, RegionRepository regions,
                                        PaiementService paiements, EvenementSortantRepository evenements,
                                        JournalActions journal, Idempotence idempotence, ObjectMapper json,
-                                       Clock horloge) {
+                                       Clock horloge, OffreRestaurant offre) {
         this.tarification = tarification;
         this.commandes = commandes;
         this.secteurs = secteurs;
@@ -71,6 +73,7 @@ public class CreationCommandeTransaction {
         this.idempotence = idempotence;
         this.json = json;
         this.horloge = horloge;
+        this.offre = offre;
     }
 
     /** Reponse de creation : la commande (contrat : Commande) + le jeton de suivi + le paiement. */
@@ -113,6 +116,8 @@ public class CreationCommandeTransaction {
                         "Une commande en ligne se paie par Wave, Orange Money, Mixx by Yas ou carte.", "moyenPaiement");
             }
         }
+        // Ce que le restaurant propose (restaurant.json) : refuse aussi cote serveur.
+        offre.verifier(s.canal(), s.mode(), s.moyenPaiement());
 
         List<LigneTarifee> lignes = tarification.tarifer(s.lignes());
         long frais = 0;

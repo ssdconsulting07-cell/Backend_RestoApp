@@ -10,3 +10,8 @@ target/
 
 # Tests de charge : rapports k6, journaux et metriques de chaque passage
 load-tests/resultats/
+
+# Outil de personnalisation (npm run client) : sorties generees, avec
+# mots de passe temporaires et donnees des restaurants. Jamais dans git.
+node_modules/
+deploiements/

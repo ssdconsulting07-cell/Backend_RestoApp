@@ -1,0 +1,812 @@
+{
+  "regions": [
+    {
+      "code": "DAKAR",
+      "nom": "Dakar"
+    },
+    {
+      "code": "THIES",
+      "nom": "Thiès"
+    },
+    {
+      "code": "DIOURBEL",
+      "nom": "Diourbel"
+    },
+    {
+      "code": "FATICK",
+      "nom": "Fatick"
+    },
+    {
+      "code": "KAOLACK",
+      "nom": "Kaolack"
+    },
+    {
+      "code": "KAFFRINE",
+      "nom": "Kaffrine"
+    },
+    {
+      "code": "LOUGA",
+      "nom": "Louga"
+    },
+    {
+      "code": "SAINT_LOUIS",
+      "nom": "Saint-Louis"
+    },
+    {
+      "code": "MATAM",
+      "nom": "Matam"
+    },
+    {
+      "code": "TAMBACOUNDA",
+      "nom": "Tambacounda"
+    },
+    {
+      "code": "KEDOUGOU",
+      "nom": "Kédougou"
+    },
+    {
+      "code": "ZIGUINCHOR",
+      "nom": "Ziguinchor"
+    },
+    {
+      "code": "SEDHIOU",
+      "nom": "Sédhiou"
+    },
+    {
+      "code": "KOLDA",
+      "nom": "Kolda"
+    }
+  ],
+  "secteurs": [
+    {
+      "id": "DAKAR-ALMADIES",
+      "region": "DAKAR",
+      "departement": "Dakar",
+      "nom": "Almadies"
+    },
+    {
+      "id": "DAKAR-GRAND-DAKAR",
+      "region": "DAKAR",
+      "departement": "Dakar",
+      "nom": "Grand Dakar"
+    },
+    {
+      "id": "DAKAR-PARCELLES-ASSAINIES",
+      "region": "DAKAR",
+      "departement": "Dakar",
+      "nom": "Parcelles Assainies"
+    },
+    {
+      "id": "DAKAR-PLATEAU-GOREE",
+      "region": "DAKAR",
+      "departement": "Dakar",
+      "nom": "Plateau/Gorée"
+    },
+    {
+      "id": "DAKAR-GUEDIAWAYE",
+      "region": "DAKAR",
+      "departement": "Guédiawaye",
+      "nom": "Guédiawaye"
+    },
+    {
+      "id": "DAKAR-KEUR-MASSAR",
+      "region": "DAKAR",
+      "departement": "Keur Massar",
+      "nom": "Keur Massar"
+    },
+    {
+      "id": "DAKAR-DAGOUDANE",
+      "region": "DAKAR",
+      "departement": "Pikine",
+      "nom": "Dagoudane"
+    },
+    {
+      "id": "DAKAR-NIAYES",
+      "region": "DAKAR",
+      "departement": "Pikine",
+      "nom": "Niayes"
+    },
+    {
+      "id": "DAKAR-THIAROYE",
+      "region": "DAKAR",
+      "departement": "Pikine",
+      "nom": "Thiaroye"
+    },
+    {
+      "id": "DAKAR-RUFISQUE",
+      "region": "DAKAR",
+      "departement": "Rufisque",
+      "nom": "Rufisque"
+    },
+    {
+      "id": "DAKAR-SEBIKOTANE",
+      "region": "DAKAR",
+      "departement": "Rufisque",
+      "nom": "Sébikotane"
+    },
+    {
+      "id": "THIES-FISSEL",
+      "region": "THIES",
+      "departement": "M’bour",
+      "nom": "Fissel"
+    },
+    {
+      "id": "THIES-SESSENE",
+      "region": "THIES",
+      "departement": "M’bour",
+      "nom": "Séssène"
+    },
+    {
+      "id": "THIES-SINDIA",
+      "region": "THIES",
+      "departement": "M’bour",
+      "nom": "Sindia"
+    },
+    {
+      "id": "THIES-KEUR-MOUSSA",
+      "region": "THIES",
+      "departement": "Thiès",
+      "nom": "Keur Moussa"
+    },
+    {
+      "id": "THIES-NOTTO",
+      "region": "THIES",
+      "departement": "Thiès",
+      "nom": "Notto"
+    },
+    {
+      "id": "THIES-THIENABA",
+      "region": "THIES",
+      "departement": "Thiès",
+      "nom": "Thiénaba"
+    },
+    {
+      "id": "THIES-THIES-NORD",
+      "region": "THIES",
+      "departement": "Thiès",
+      "nom": "Thiès Nord"
+    },
+    {
+      "id": "THIES-THIES-SUD",
+      "region": "THIES",
+      "departement": "Thiès",
+      "nom": "Thiès Sud"
+    },
+    {
+      "id": "THIES-MEOUANE",
+      "region": "THIES",
+      "departement": "Tivaouane",
+      "nom": "Méouane"
+    },
+    {
+      "id": "THIES-MERINA-DAKHAR",
+      "region": "THIES",
+      "departement": "Tivaouane",
+      "nom": "Mérina Dakhar"
+    },
+    {
+      "id": "THIES-NIAKHENE",
+      "region": "THIES",
+      "departement": "Tivaouane",
+      "nom": "Niakhène"
+    },
+    {
+      "id": "THIES-PAMBAL",
+      "region": "THIES",
+      "departement": "Tivaouane",
+      "nom": "Pambal"
+    },
+    {
+      "id": "DIOURBEL-BABA-GARAGE",
+      "region": "DIOURBEL",
+      "departement": "Bambey",
+      "nom": "Baba Garage"
+    },
+    {
+      "id": "DIOURBEL-LAMBAYE",
+      "region": "DIOURBEL",
+      "departement": "Bambey",
+      "nom": "Lambaye"
+    },
+    {
+      "id": "DIOURBEL-NGOYE",
+      "region": "DIOURBEL",
+      "departement": "Bambey",
+      "nom": "Ngoye"
+    },
+    {
+      "id": "DIOURBEL-NDINDY",
+      "region": "DIOURBEL",
+      "departement": "Diourbel",
+      "nom": "Ndindy"
+    },
+    {
+      "id": "DIOURBEL-NDOULO",
+      "region": "DIOURBEL",
+      "departement": "Diourbel",
+      "nom": "Ndoulo"
+    },
+    {
+      "id": "DIOURBEL-KAEL",
+      "region": "DIOURBEL",
+      "departement": "Mbacké",
+      "nom": "Kael"
+    },
+    {
+      "id": "DIOURBEL-NDAME",
+      "region": "DIOURBEL",
+      "departement": "Mbacké",
+      "nom": "Ndame"
+    },
+    {
+      "id": "DIOURBEL-TAIF",
+      "region": "DIOURBEL",
+      "departement": "Mbacké",
+      "nom": "Taïf"
+    },
+    {
+      "id": "FATICK-DIAKHAO",
+      "region": "FATICK",
+      "departement": "Fatick",
+      "nom": "Diakhao"
+    },
+    {
+      "id": "FATICK-FIMELA",
+      "region": "FATICK",
+      "departement": "Fatick",
+      "nom": "Fimela"
+    },
+    {
+      "id": "FATICK-NIAKHAR",
+      "region": "FATICK",
+      "departement": "Fatick",
+      "nom": "Niakhar"
+    },
+    {
+      "id": "FATICK-TATTAGUINE",
+      "region": "FATICK",
+      "departement": "Fatick",
+      "nom": "Tattaguine"
+    },
+    {
+      "id": "FATICK-DJILOR",
+      "region": "FATICK",
+      "departement": "Foundiougne",
+      "nom": "Djilor"
+    },
+    {
+      "id": "FATICK-NIODIOR",
+      "region": "FATICK",
+      "departement": "Foundiougne",
+      "nom": "Niodior"
+    },
+    {
+      "id": "FATICK-TOUBACOUTA",
+      "region": "FATICK",
+      "departement": "Foundiougne",
+      "nom": "Toubacouta"
+    },
+    {
+      "id": "FATICK-COLOBANE",
+      "region": "FATICK",
+      "departement": "Gossas",
+      "nom": "Colobane"
+    },
+    {
+      "id": "FATICK-OUADIOUR",
+      "region": "FATICK",
+      "departement": "Gossas",
+      "nom": "Ouadiour"
+    },
+    {
+      "id": "KAOLACK-MBADAKHOUNE",
+      "region": "KAOLACK",
+      "departement": "Guinguinéo",
+      "nom": "Mbadakhoune"
+    },
+    {
+      "id": "KAOLACK-NGUELOU",
+      "region": "KAOLACK",
+      "departement": "Guinguinéo",
+      "nom": "Nguélou"
+    },
+    {
+      "id": "KAOLACK-KOUMBAL",
+      "region": "KAOLACK",
+      "departement": "Kaolack",
+      "nom": "Koumbal"
+    },
+    {
+      "id": "KAOLACK-NDIEDIENG",
+      "region": "KAOLACK",
+      "departement": "Kaolack",
+      "nom": "Ndiédieng"
+    },
+    {
+      "id": "KAOLACK-NGOTHIE",
+      "region": "KAOLACK",
+      "departement": "Kaolack",
+      "nom": "Ngothié"
+    },
+    {
+      "id": "KAOLACK-MEDINA-SABAKH",
+      "region": "KAOLACK",
+      "departement": "Nioro du Rip",
+      "nom": "Médina Sabakh"
+    },
+    {
+      "id": "KAOLACK-PAOSKOTO",
+      "region": "KAOLACK",
+      "departement": "Nioro du Rip",
+      "nom": "Paoskoto"
+    },
+    {
+      "id": "KAOLACK-WACK-NGOUNA",
+      "region": "KAOLACK",
+      "departement": "Nioro du Rip",
+      "nom": "Wack Ngouna"
+    },
+    {
+      "id": "KAFFRINE-GNIBY",
+      "region": "KAFFRINE",
+      "departement": "Kaffrine",
+      "nom": "Gniby"
+    },
+    {
+      "id": "KAFFRINE-KATAKEL",
+      "region": "KAFFRINE",
+      "departement": "Kaffrine",
+      "nom": "Katakel"
+    },
+    {
+      "id": "KAFFRINE-KEUR-MBOUCKI",
+      "region": "KAFFRINE",
+      "departement": "Birkilane",
+      "nom": "Keur Mboucki"
+    },
+    {
+      "id": "KAFFRINE-MABO",
+      "region": "KAFFRINE",
+      "departement": "Birkilane",
+      "nom": "Mabo"
+    },
+    {
+      "id": "KAFFRINE-IDA-MOURIDE",
+      "region": "KAFFRINE",
+      "departement": "Koungheul",
+      "nom": "Ida Mouride"
+    },
+    {
+      "id": "KAFFRINE-LOUR-ESCALE",
+      "region": "KAFFRINE",
+      "departement": "Koungheul",
+      "nom": "Lour Escale"
+    },
+    {
+      "id": "KAFFRINE-MISSIRAH-WADENE",
+      "region": "KAFFRINE",
+      "departement": "Koungheul",
+      "nom": "Missirah Wadène"
+    },
+    {
+      "id": "KAFFRINE-DAROU-MINAM",
+      "region": "KAFFRINE",
+      "departement": "Malem Hodar",
+      "nom": "Darou Minam"
+    },
+    {
+      "id": "KAFFRINE-SAGNA",
+      "region": "KAFFRINE",
+      "departement": "Malem Hodar",
+      "nom": "Sagna"
+    },
+    {
+      "id": "LOUGA-DAROU-MOUSTI",
+      "region": "LOUGA",
+      "departement": "Kébémer",
+      "nom": "Darou Mousti"
+    },
+    {
+      "id": "LOUGA-NDANDE",
+      "region": "LOUGA",
+      "departement": "Kébémer",
+      "nom": "Ndande"
+    },
+    {
+      "id": "LOUGA-SAGATA",
+      "region": "LOUGA",
+      "departement": "Kébémer",
+      "nom": "Sagata"
+    },
+    {
+      "id": "LOUGA-BARKEDJI",
+      "region": "LOUGA",
+      "departement": "Linguère",
+      "nom": "Barkedji"
+    },
+    {
+      "id": "LOUGA-DODJI",
+      "region": "LOUGA",
+      "departement": "Linguère",
+      "nom": "Dodji"
+    },
+    {
+      "id": "LOUGA-SAGATTA-DIOLOFF",
+      "region": "LOUGA",
+      "departement": "Linguère",
+      "nom": "Sagatta Dioloff"
+    },
+    {
+      "id": "LOUGA-YANG-YANG",
+      "region": "LOUGA",
+      "departement": "Linguère",
+      "nom": "Yang-Yang"
+    },
+    {
+      "id": "LOUGA-KEUR-MOMAR-SARR",
+      "region": "LOUGA",
+      "departement": "Louga",
+      "nom": "Keur Momar Sarr"
+    },
+    {
+      "id": "LOUGA-KOKI",
+      "region": "LOUGA",
+      "departement": "Louga",
+      "nom": "Koki"
+    },
+    {
+      "id": "LOUGA-MBEDIENE",
+      "region": "LOUGA",
+      "departement": "Louga",
+      "nom": "Mbédiène"
+    },
+    {
+      "id": "LOUGA-SAKAL",
+      "region": "LOUGA",
+      "departement": "Louga",
+      "nom": "Sakal"
+    },
+    {
+      "id": "SAINT_LOUIS-MBANE",
+      "region": "SAINT_LOUIS",
+      "departement": "Dagana",
+      "nom": "Mbane"
+    },
+    {
+      "id": "SAINT_LOUIS-NDIAYE",
+      "region": "SAINT_LOUIS",
+      "departement": "Dagana",
+      "nom": "Ndiaye"
+    },
+    {
+      "id": "SAINT_LOUIS-CAS-CAS",
+      "region": "SAINT_LOUIS",
+      "departement": "Podor",
+      "nom": "Cas-Cas"
+    },
+    {
+      "id": "SAINT_LOUIS-GAMADJI-SARE",
+      "region": "SAINT_LOUIS",
+      "departement": "Podor",
+      "nom": "Gamadji Saré"
+    },
+    {
+      "id": "SAINT_LOUIS-SALDE",
+      "region": "SAINT_LOUIS",
+      "departement": "Podor",
+      "nom": "Salde"
+    },
+    {
+      "id": "SAINT_LOUIS-THILLE-BOUBACAR",
+      "region": "SAINT_LOUIS",
+      "departement": "Podor",
+      "nom": "Thillé Boubacar"
+    },
+    {
+      "id": "SAINT_LOUIS-RAO",
+      "region": "SAINT_LOUIS",
+      "departement": "Saint-Louis",
+      "nom": "Rao"
+    },
+    {
+      "id": "MATAM-ORKADIERE",
+      "region": "MATAM",
+      "departement": "Kanel",
+      "nom": "Orkadiéré"
+    },
+    {
+      "id": "MATAM-WOURO-SIDY",
+      "region": "MATAM",
+      "departement": "Kanel",
+      "nom": "Wouro Sidy"
+    },
+    {
+      "id": "MATAM-AGNAM-CIVOL",
+      "region": "MATAM",
+      "departement": "Matam",
+      "nom": "Agnam Civol"
+    },
+    {
+      "id": "MATAM-OGO",
+      "region": "MATAM",
+      "departement": "Matam",
+      "nom": "Ogo"
+    },
+    {
+      "id": "MATAM-RANEROU-FERLO",
+      "region": "MATAM",
+      "departement": "Ranérou Ferlo",
+      "nom": "Ranérou Ferlo"
+    },
+    {
+      "id": "MATAM-VELINGARA-RANEROU",
+      "region": "MATAM",
+      "departement": "Ranérou Ferlo",
+      "nom": "Vélingara (Ranérou)"
+    },
+    {
+      "id": "TAMBACOUNDA-BELE",
+      "region": "TAMBACOUNDA",
+      "departement": "Bakel",
+      "nom": "Bélé"
+    },
+    {
+      "id": "TAMBACOUNDA-KENIABA",
+      "region": "TAMBACOUNDA",
+      "departement": "Bakel",
+      "nom": "Kéniaba"
+    },
+    {
+      "id": "TAMBACOUNDA-MOUDERY",
+      "region": "TAMBACOUNDA",
+      "departement": "Bakel",
+      "nom": "Moudéry"
+    },
+    {
+      "id": "TAMBACOUNDA-BALA",
+      "region": "TAMBACOUNDA",
+      "departement": "Goudiry",
+      "nom": "Bala"
+    },
+    {
+      "id": "TAMBACOUNDA-BOYNGUEL-BAMBA",
+      "region": "TAMBACOUNDA",
+      "departement": "Goudiry",
+      "nom": "Boynguel Bamba"
+    },
+    {
+      "id": "TAMBACOUNDA-DIANKE-MAKHA",
+      "region": "TAMBACOUNDA",
+      "departement": "Goudiry",
+      "nom": "Dianké Makha"
+    },
+    {
+      "id": "TAMBACOUNDA-KOULOR",
+      "region": "TAMBACOUNDA",
+      "departement": "Goudiry",
+      "nom": "Koulor"
+    },
+    {
+      "id": "TAMBACOUNDA-BAMBA-THIALENE",
+      "region": "TAMBACOUNDA",
+      "departement": "Koumpentoum",
+      "nom": "Bamba Thialène"
+    },
+    {
+      "id": "TAMBACOUNDA-KOUTHIABA-WOLOF",
+      "region": "TAMBACOUNDA",
+      "departement": "Koumpentoum",
+      "nom": "Kouthiaba Wolof"
+    },
+    {
+      "id": "TAMBACOUNDA-KOUSSANAR",
+      "region": "TAMBACOUNDA",
+      "departement": "Tambacounda",
+      "nom": "Koussanar"
+    },
+    {
+      "id": "TAMBACOUNDA-MAKACOLIBANTANG",
+      "region": "TAMBACOUNDA",
+      "departement": "Tambacounda",
+      "nom": "Makacolibantang"
+    },
+    {
+      "id": "TAMBACOUNDA-MISSIRAH",
+      "region": "TAMBACOUNDA",
+      "departement": "Tambacounda",
+      "nom": "Missirah"
+    },
+    {
+      "id": "KEDOUGOU-BANDAFASSI",
+      "region": "KEDOUGOU",
+      "departement": "Kédougou",
+      "nom": "Bandafassi"
+    },
+    {
+      "id": "KEDOUGOU-FONGOLIMBI",
+      "region": "KEDOUGOU",
+      "departement": "Kédougou",
+      "nom": "Fongolimbi"
+    },
+    {
+      "id": "KEDOUGOU-DAKATELI",
+      "region": "KEDOUGOU",
+      "departement": "Salémata",
+      "nom": "Dakateli"
+    },
+    {
+      "id": "KEDOUGOU-DAR-SALAM",
+      "region": "KEDOUGOU",
+      "departement": "Salémata",
+      "nom": "Dar Salam"
+    },
+    {
+      "id": "KEDOUGOU-BEMBOU",
+      "region": "KEDOUGOU",
+      "departement": "Saraya",
+      "nom": "Bembou"
+    },
+    {
+      "id": "KEDOUGOU-SABODALA",
+      "region": "KEDOUGOU",
+      "departement": "Saraya",
+      "nom": "Sabodala"
+    },
+    {
+      "id": "ZIGUINCHOR-KATABA",
+      "region": "ZIGUINCHOR",
+      "departement": "Bignona",
+      "nom": "Kataba"
+    },
+    {
+      "id": "ZIGUINCHOR-SINDIAN",
+      "region": "ZIGUINCHOR",
+      "departement": "Bignona",
+      "nom": "Sindian"
+    },
+    {
+      "id": "ZIGUINCHOR-TENDOUCK",
+      "region": "ZIGUINCHOR",
+      "departement": "Bignona",
+      "nom": "Tendouck"
+    },
+    {
+      "id": "ZIGUINCHOR-TENGHORI",
+      "region": "ZIGUINCHOR",
+      "departement": "Bignona",
+      "nom": "Tenghori"
+    },
+    {
+      "id": "ZIGUINCHOR-CABROUSSE",
+      "region": "ZIGUINCHOR",
+      "departement": "Oussouye",
+      "nom": "Cabrousse"
+    },
+    {
+      "id": "ZIGUINCHOR-LOUDIA-OUOLOF",
+      "region": "ZIGUINCHOR",
+      "departement": "Oussouye",
+      "nom": "Loudia Ouolof"
+    },
+    {
+      "id": "ZIGUINCHOR-NIAGUIS",
+      "region": "ZIGUINCHOR",
+      "departement": "Ziguinchor",
+      "nom": "Niaguis"
+    },
+    {
+      "id": "ZIGUINCHOR-NYASSIA",
+      "region": "ZIGUINCHOR",
+      "departement": "Ziguinchor",
+      "nom": "Nyassia"
+    },
+    {
+      "id": "SEDHIOU-BOGHAL",
+      "region": "SEDHIOU",
+      "departement": "Bounkiling",
+      "nom": "Boghal"
+    },
+    {
+      "id": "SEDHIOU-BONA",
+      "region": "SEDHIOU",
+      "departement": "Bounkiling",
+      "nom": "Bona"
+    },
+    {
+      "id": "SEDHIOU-DIAROUME",
+      "region": "SEDHIOU",
+      "departement": "Bounkiling",
+      "nom": "Diaroumé"
+    },
+    {
+      "id": "SEDHIOU-DJIBANAR",
+      "region": "SEDHIOU",
+      "departement": "Goudomp",
+      "nom": "Djibanar"
+    },
+    {
+      "id": "SEDHIOU-SIMBANDI-BRASSOU",
+      "region": "SEDHIOU",
+      "departement": "Goudomp",
+      "nom": "Simbandi Brassou"
+    },
+    {
+      "id": "SEDHIOU-KARANTABA",
+      "region": "SEDHIOU",
+      "departement": "Goudomp",
+      "nom": "Karantaba"
+    },
+    {
+      "id": "SEDHIOU-DIENDE",
+      "region": "SEDHIOU",
+      "departement": "Sédhiou",
+      "nom": "Diendé"
+    },
+    {
+      "id": "SEDHIOU-DJIBABOUYA",
+      "region": "SEDHIOU",
+      "departement": "Sédhiou",
+      "nom": "Djibabouya"
+    },
+    {
+      "id": "SEDHIOU-DJIREDJI",
+      "region": "SEDHIOU",
+      "departement": "Sédhiou",
+      "nom": "Djirédji"
+    },
+    {
+      "id": "KOLDA-DJOULACOLON",
+      "region": "KOLDA",
+      "departement": "Kolda",
+      "nom": "Djoulacolon"
+    },
+    {
+      "id": "KOLDA-MAMPATIM",
+      "region": "KOLDA",
+      "departement": "Kolda",
+      "nom": "Mampatim"
+    },
+    {
+      "id": "KOLDA-SARE-BIDJI",
+      "region": "KOLDA",
+      "departement": "Kolda",
+      "nom": "Saré Bidji"
+    },
+    {
+      "id": "KOLDA-FAFACOUROU",
+      "region": "KOLDA",
+      "departement": "Médina Yoro Foulah",
+      "nom": "Fafacourou"
+    },
+    {
+      "id": "KOLDA-NDORNA",
+      "region": "KOLDA",
+      "departement": "Médina Yoro Foulah",
+      "nom": "Ndorna"
+    },
+    {
+      "id": "KOLDA-NIAMING",
+      "region": "KOLDA",
+      "departement": "Médina Yoro Foulah",
+      "nom": "Niaming"
+    },
+    {
+      "id": "KOLDA-BONCONTO",
+      "region": "KOLDA",
+      "departement": "Vélingara",
+      "nom": "Bonconto"
+    },
+    {
+      "id": "KOLDA-PAKOUR",
+      "region": "KOLDA",
+      "departement": "Vélingara",
+      "nom": "Pakour"
+    },
+    {
+      "id": "KOLDA-SARE-COLY-SALLE",
+      "region": "KOLDA",
+      "departement": "Vélingara",
+      "nom": "Saré Coly Sallé"
+    }
+  ]
+}

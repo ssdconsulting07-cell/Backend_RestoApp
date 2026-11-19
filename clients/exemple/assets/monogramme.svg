@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KS">
+  <!-- Monogramme du restaurant fictif : source des icones de l'app et du favicon. -->
+  <rect width="512" height="512" rx="112" fill="#1F7A4D"/>
+  <g transform="translate(256 256) scale(0.84) translate(-256 -256)">
+    <!-- K -->
+    <path fill="#F7F3E8" d="M70 140h52v104l88-104h62l-94 108 100 124h-64l-76-96-16 18v78h-52z"/>
+    <!-- S -->
+    <path fill="#F4B942" d="M448 186c-14-14-34-22-56-22-28 0-44 12-44 30 0 46 116 22 116 106 0 44-36 76-92 76-38 0-70-14-92-38l30-36c18 18 40 28 62 28 26 0 42-12 42-30 0-48-116-22-116-104 0-42 36-72 88-72 34 0 64 12 86 32z"/>
+  </g>
+</svg>

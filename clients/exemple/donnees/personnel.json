@@ -1,0 +1,7 @@
+[
+  { "identifiant": "khady.manager", "role": "MANAGER", "prenom": "Khady", "nom": "Exemple" },
+  { "identifiant": "fatou.gerant", "role": "GERANT", "prenom": "Fatou", "nom": "Exemple", "telephone": "+221770000001" },
+  { "identifiant": "moussa.cuisine", "role": "CUISINE", "prenom": "Moussa", "nom": "Exemple" },
+  { "identifiant": "ibrahima.livreur", "role": "LIVREUR", "prenom": "Ibrahima", "nom": "Exemple", "telephone": "+221770000002" },
+  { "identifiant": "aissatou.vendeur", "role": "VENDEUR", "prenom": "Aïssatou", "nom": "Exemple" }
+]
