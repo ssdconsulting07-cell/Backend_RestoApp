@@ -24,7 +24,7 @@ function compiler() {
   if (validateurs) return validateurs;
   // allErrors voulu : l'outil tourne hors ligne sur les fichiers fournis par l'operateur et doit lister
   // toutes les erreurs d'un coup (aucune entree reseau, pas de risque de deni de service).
-  const ajv = new Ajv({ allErrors: true, strict: false }); // nosemgrep: javascript.ajv.security.audit.ajv-allerrors-true
+  const ajv = new Ajv({ allErrors: true, strict: false }); // nosemgrep
   ajvFormats(ajv);
   ajvErrors(ajv);
   ajv.addSchema(lireSchema('donnees.schema.json'));
