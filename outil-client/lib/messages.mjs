@@ -10,6 +10,9 @@ const TYPES = {
   object: 'un objet { ... }',
 };
 
+/** Lit une propriete propre (jamais __proto__, constructor... herites du prototype). */
+const proprePropriete = (objet, cle) => (objet && typeof objet === 'object' && Object.hasOwn(objet, cle) ? objet[cle] : undefined);
+
 /** "/produits/2/prix" (+ donnees) -> "[2] « yassa » › prix" ; racine -> "". */
 export function cheminLisible(instancePath, donnees) {
   if (!instancePath) return '';
@@ -18,11 +21,11 @@ export function cheminLisible(instancePath, donnees) {
   let texte = '';
   for (const m of morceaux) {
     if (Array.isArray(courant) && /^\d+$/.test(m)) {
-      courant = courant[Number(m)];
+      courant = proprePropriete(courant, Number(m));
       const id = courant && typeof courant === 'object' && (courant.id || courant.identifiant || courant.secteur);
       texte += `[${m}]${id ? ` « ${id} »` : ''}`;
     } else {
-      courant = courant && typeof courant === 'object' ? courant[m] : undefined;
+      courant = proprePropriete(courant, m);
       texte += `${texte ? ' › ' : ''}${m}`;
     }
   }
