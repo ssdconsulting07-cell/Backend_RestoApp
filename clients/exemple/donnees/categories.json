@@ -1,0 +1,7 @@
+[
+  { "id": "grillades", "nom": "Grillades", "accompagnements": true },
+  { "id": "terroir", "nom": "Plats du terroir", "accompagnements": true },
+  { "id": "accompagnements", "nom": "Accompagnements" },
+  { "id": "boissons", "nom": "Boissons locales" },
+  { "id": "desserts", "nom": "Desserts" }
+]

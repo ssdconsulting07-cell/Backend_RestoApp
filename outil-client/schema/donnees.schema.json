@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "donnees.schema.json",
+  "title": "Données initiales d'un restaurant (clients/<restaurant>/donnees/*.json)",
+  "description": "Un schéma par fichier : categories, produits, accompagnements, plats-du-jour, annonces, personnel. Chaque fiche a un id stable : l'import est rejouable sans doublon.",
+  "definitions": {
+    "id": {
+      "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,59}$",
+      "errorMessage": "id invalide : minuscules, chiffres et tirets (ex. burger-classique). Il ne doit plus changer une fois déployé."
+    },
+    "nom": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S", "errorMessage": "nom vide ou trop long (80 caractères maximum)" },
+    "description": { "type": "string", "maxLength": 300, "errorMessage": "description trop longue (300 caractères maximum)" },
+    "prix": {
+      "type": "integer", "minimum": 0, "maximum": 10000000,
+      "errorMessage": {
+        "type": "prix invalide : entier en F CFA, sans décimales ni espace (ex. 3500)",
+        "minimum": "prix négatif : un prix est positif ou nul",
+        "maximum": "prix invraisemblable (plus de 10 000 000 F CFA)"
+      }
+    },
+    "prixVente": {
+      "type": "integer", "minimum": 1, "maximum": 10000000,
+      "errorMessage": {
+        "type": "prix invalide : entier en F CFA, sans décimales ni espace (ex. 3500)",
+        "minimum": "prix négatif ou nul : un produit vendu coûte au moins 1 F CFA",
+        "maximum": "prix invraisemblable (plus de 10 000 000 F CFA)"
+      }
+    },
+    "photo": {
+      "type": "string",
+      "pattern": "^(https://\\S+|(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.(png|jpg|jpeg|webp))$",
+      "errorMessage": "photo invalide : chemin relatif (ex. donnees/photos/yassa.jpg, JPEG/PNG/WebP, sans espace ni accent) ou lien https://"
+    },
+    "statut": { "enum": ["ACTIF", "BROUILLON", "ARCHIVE"], "errorMessage": "statut invalide : ACTIF (publié), BROUILLON ou ARCHIVE" },
+    "jour": { "enum": ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"], "errorMessage": "jour invalide : lundi ... dimanche" },
+
+    "categories": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nom"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "nom": { "$ref": "#/definitions/nom" },
+          "accompagnements": { "type": "boolean", "description": "true : la caisse et l'app proposent les accompagnements pour les produits de cette catégorie." },
+          "statut": { "$ref": "#/definitions/statut" }
+        }
+      }
+    },
+    "produits": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nom", "prix", "categorie"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "nom": { "$ref": "#/definitions/nom" },
+          "description": { "$ref": "#/definitions/description" },
+          "prix": { "$ref": "#/definitions/prixVente" },
+          "categorie": { "$ref": "#/definitions/id" },
+          "photo": { "$ref": "#/definitions/photo" },
+          "tendance": {
+            "enum": [true, false, "auto"],
+            "description": "Badge « Tendance » : true (forcé), false (jamais) ou auto (les plus commandés). Défaut : auto.",
+            "errorMessage": "tendance invalide : true, false ou \"auto\""
+          },
+          "disponible": { "type": "boolean", "description": "false : affiché en rupture. Défaut : true." },
+          "statut": { "$ref": "#/definitions/statut" }
+        }
+      }
+    },
+    "accompagnements": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nom", "prix", "type"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "nom": { "$ref": "#/definitions/nom" },
+          "prix": { "$ref": "#/definitions/prix" },
+          "type": { "enum": ["accompagnement", "condiment"], "errorMessage": "type invalide : accompagnement ou condiment" },
+          "statut": { "$ref": "#/definitions/statut" }
+        }
+      }
+    },
+    "platsDuJour": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nom", "prix", "jours"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "nom": { "$ref": "#/definitions/nom" },
+          "description": { "$ref": "#/definitions/description" },
+          "prix": { "$ref": "#/definitions/prixVente" },
+          "photo": { "$ref": "#/definitions/photo" },
+          "jours": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/definitions/jour" } },
+          "services": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": { "enum": ["dejeuner", "diner"], "errorMessage": "service invalide : dejeuner ou diner" },
+            "description": "Défaut : les deux services."
+          },
+          "statut": { "$ref": "#/definitions/statut" }
+        }
+      }
+    },
+    "annonces": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "titre", "slides"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "titre": { "$ref": "#/definitions/nom" },
+          "statut": { "$ref": "#/definitions/statut" },
+          "slides": {
+            "type": "array", "minItems": 1, "maxItems": 10,
+            "errorMessage": "une annonce contient 1 à 10 slides",
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["titre"],
+              "properties": {
+                "titre": { "$ref": "#/definitions/nom" },
+                "message": { "$ref": "#/definitions/description" },
+                "image": { "$ref": "#/definitions/photo" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "personnel": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["identifiant", "role", "prenom", "nom"],
+        "properties": {
+          "identifiant": {
+            "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,59}$",
+            "errorMessage": "identifiant invalide : 3 caractères minimum, minuscules, chiffres, point, tiret (ex. awa.diop)"
+          },
+          "role": {
+            "enum": ["MANAGER", "GERANT", "CUISINE", "LIVREUR", "VENDEUR"],
+            "errorMessage": "rôle invalide : MANAGER, GERANT, CUISINE, LIVREUR ou VENDEUR"
+          },
+          "prenom": { "$ref": "#/definitions/nom" },
+          "nom": { "$ref": "#/definitions/nom" },
+          "telephone": { "type": "string", "pattern": "^\\+[1-9][0-9]{7,14}$", "errorMessage": "téléphone invalide : format international sans espace (ex. +221771234567)" }
+        },
+        "additionalProperties": false,
+        "errorMessage": {
+          "additionalProperties": "champ refusé : aucun mot de passe dans le dossier client. Un mot de passe temporaire est généré au déploiement (comptes-initiaux.txt)."
+        }
+      }
+    }
+  }
+}

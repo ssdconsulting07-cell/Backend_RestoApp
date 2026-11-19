@@ -1,0 +1,111 @@
+[
+  {
+    "id": "poisson-braise",
+    "nom": "Poisson braisé",
+    "description": "Dorade entière marinée au citron et à l'ail, braisée au charbon.",
+    "prix": 5000,
+    "categorie": "grillades",
+    "photo": "donnees/photos/poisson-braise.jpg",
+    "tendance": true
+  },
+  {
+    "id": "brochettes-boeuf",
+    "nom": "Brochettes de bœuf (x3)",
+    "description": "Bœuf mariné aux épices dibi, oignons grillés.",
+    "prix": 4000,
+    "categorie": "grillades",
+    "photo": "donnees/photos/brochettes-boeuf.jpg"
+  },
+  {
+    "id": "ailes-braisees",
+    "nom": "Ailes de poulet braisées (x6)",
+    "description": "Marinade piment doux et moutarde, cuites sur la braise.",
+    "prix": 3000,
+    "categorie": "grillades",
+    "photo": "donnees/photos/ailes-braisees.jpg",
+    "tendance": "auto"
+  },
+  {
+    "id": "aiguillettes",
+    "nom": "Aiguillettes de poulet",
+    "description": "Filets de poulet panés et croustillants, sauce au choix.",
+    "prix": 3000,
+    "categorie": "grillades",
+    "photo": "donnees/photos/aiguillettes.jpg"
+  },
+  {
+    "id": "yassa-poisson",
+    "nom": "Yassa poisson",
+    "description": "Poisson grillé, sauce oignons et citron, riz blanc.",
+    "prix": 3500,
+    "categorie": "terroir",
+    "photo": "donnees/photos/yassa-poisson.jpg"
+  },
+  {
+    "id": "mafe",
+    "nom": "Mafé bœuf",
+    "description": "Sauce arachide mijotée, bœuf fondant, riz blanc.",
+    "prix": 3500,
+    "categorie": "terroir",
+    "photo": "donnees/photos/mafe.jpg",
+    "disponible": false
+  },
+  {
+    "id": "frites",
+    "nom": "Frites maison",
+    "description": "Pommes de terre fraîches, coupées sur place.",
+    "prix": 1000,
+    "categorie": "accompagnements",
+    "photo": "donnees/photos/frites.jpg"
+  },
+  {
+    "id": "salade",
+    "nom": "Salade du jardin",
+    "description": "Crudités de saison, vinaigrette maison.",
+    "prix": 1500,
+    "categorie": "accompagnements",
+    "photo": "donnees/photos/salade.jpg"
+  },
+  {
+    "id": "jus-bissap",
+    "nom": "Jus de bissap",
+    "description": "Bissap frais à la menthe, peu sucré.",
+    "prix": 800,
+    "categorie": "boissons",
+    "photo": "donnees/photos/jus-bissap.jpg",
+    "tendance": true
+  },
+  {
+    "id": "jus-gingembre",
+    "nom": "Jus de gingembre",
+    "description": "Gingembre frais pressé, citron, menthe.",
+    "prix": 800,
+    "categorie": "boissons",
+    "photo": "donnees/photos/jus-gingembre.jpg"
+  },
+  {
+    "id": "jus-bouye",
+    "nom": "Jus de bouye",
+    "description": "Pulpe de baobab, lait, vanille.",
+    "prix": 1000,
+    "categorie": "boissons",
+    "photo": "donnees/photos/jus-bouye.jpg"
+  },
+  {
+    "id": "thiakry",
+    "nom": "Thiakry",
+    "description": "Couscous de mil, lait caillé sucré, vanille.",
+    "prix": 1500,
+    "categorie": "desserts",
+    "photo": "donnees/photos/thiakry.jpg"
+  },
+  {
+    "id": "beignets",
+    "nom": "Beignets sucrés (x4)",
+    "description": "Bientôt à la carte.",
+    "prix": 1000,
+    "categorie": "desserts",
+    "photo": "donnees/photos/beignets.jpg",
+    "statut": "BROUILLON"
+  }
+]

@@ -1,0 +1,8 @@
+[
+  { "id": "alloco", "nom": "Alloco", "prix": 500, "type": "accompagnement" },
+  { "id": "attieke", "nom": "Attiéké", "prix": 500, "type": "accompagnement" },
+  { "id": "riz", "nom": "Riz blanc", "prix": 0, "type": "accompagnement" },
+  { "id": "sauce-oignon", "nom": "Sauce oignon", "prix": 200, "type": "condiment" },
+  { "id": "piment", "nom": "Piment", "prix": 0, "type": "condiment" },
+  { "id": "moutarde", "nom": "Moutarde", "prix": 0, "type": "condiment" }
+]

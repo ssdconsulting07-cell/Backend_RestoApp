@@ -1,0 +1,77 @@
+{
+  "$schema": "../../outil-client/schema/restaurant.schema.json",
+  "identifiant": "exemple",
+  "nom": "Kër Saveurs",
+  "nomCourt": "Kër Saveurs",
+  "nomAccent": "Saveurs",
+  "initiales": "KS",
+  "slogan": "Le grill de Thiès, braisé à la minute.",
+  "sousTitre": "Grillades · Thiès",
+  "description": "Kër Saveurs : grillades et plats du terroir à Thiès, en livraison ou à retirer au comptoir.",
+  "etablissement": "Kër Saveurs — Thiès",
+  "couleurs": {
+    "principale": "#1F7A4D",
+    "foncee": "#165C3A",
+    "claire": "#F4B942"
+  },
+  "coordonnees": {
+    "telephone": "+221330000000",
+    "emailSupport": "support@kersaveurs.example",
+    "adresse": "Avenue de l'exemple, Thiès Nord",
+    "reseauxSociaux": {
+      "whatsapp": "+221770000000",
+      "instagram": "https://instagram.com/kersaveurs.example",
+      "facebook": "https://facebook.com/kersaveurs.example"
+    }
+  },
+  "horaires": {
+    "ouverture": [
+      { "jours": ["lundi", "mardi", "mercredi", "jeudi"], "debut": "11:30", "fin": "23:00" },
+      { "jours": ["vendredi", "samedi"], "debut": "11:30", "fin": "00:30" },
+      { "jours": ["dimanche"], "debut": "17:00", "fin": "23:00" }
+    ],
+    "services": {
+      "dejeuner": { "debut": "11:30", "fin": "15:00" },
+      "diner": { "debut": "18:30", "fin": "23:30" }
+    }
+  },
+  "paiements": {
+    "wave": true,
+    "orangeMoney": true,
+    "mixxByYas": false,
+    "carte": false,
+    "especesComptoir": true
+  },
+  "modes": {
+    "livraison": true,
+    "retraitComptoir": true
+  },
+  "livraison": {
+    "masquerAutresZones": true,
+    "zones": [
+      { "region": "THIES", "secteur": "Thiès Nord", "frais": 500 },
+      { "region": "THIES", "secteur": "Thiès Sud", "frais": 500 },
+      { "region": "THIES", "secteur": "Keur Moussa", "frais": 1000 },
+      { "region": "THIES", "secteur": "Notto", "frais": 1500 },
+      { "region": "THIES", "secteur": "Cité Malick Sy", "departement": "Thiès", "frais": 700 }
+    ]
+  },
+  "accueil": {
+    "badge": "Braisé à la minute · Wave & Orange Money",
+    "texte": "Grillades, poissons braisés et plats du terroir, livrés chauds dans tout Thiès."
+  },
+  "assets": {
+    "logo": "assets/logo.svg",
+    "monogramme": "assets/monogramme.svg",
+    "favicon": "assets/monogramme.svg",
+    "banniere": "assets/banniere.jpg",
+    "splash": "assets/splash.jpg",
+    "connexion": ["assets/connexion-1.jpg", "assets/connexion-2.jpg"]
+  },
+  "deploiement": {
+    "urlClient": "https://commande.kersaveurs.example",
+    "urlManager": "https://gestion.kersaveurs.example",
+    "emailCertificats": "tech@kersaveurs.example",
+    "versionImages": "latest"
+  }
+}

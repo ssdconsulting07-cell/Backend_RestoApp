@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "restaurant.schema.json",
+  "title": "Fiche d'un restaurant (clients/<restaurant>/restaurant.json)",
+  "description": "Identite, coordonnees, horaires, paiements, modes, zones et deploiement d'un restaurant. Voir PERSONNALISER-UN-RESTAURANT.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["identifiant", "nom", "slogan", "couleurs", "coordonnees", "horaires", "paiements", "modes", "etablissement", "assets", "deploiement"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "identifiant": {
+      "description": "Identifiant technique du restaurant : nom du dossier, prefixe des conteneurs.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,39}$",
+      "errorMessage": "identifiant invalide : minuscules, chiffres et tirets, 2 à 40 caractères (ex. chez-fatou)"
+    },
+    "nom": { "$ref": "#/definitions/texte", "description": "Nom affiché partout (ex. Chez Fatou)." },
+    "nomCourt": {
+      "type": "string", "minLength": 1, "maxLength": 12,
+      "description": "Nom sous l'icône de l'app installée (12 caractères maximum). Défaut : le nom.",
+      "errorMessage": "nomCourt : 1 à 12 caractères (nom sous l'icône du téléphone)"
+    },
+    "nomAccent": {
+      "type": "string",
+      "description": "Fin du nom affichée dans la couleur d'accent (ex. Fatou pour Chez Fatou). Vide : nom d'une seule couleur."
+    },
+    "initiales": {
+      "type": "string", "pattern": "^\\S{1,3}$",
+      "description": "Initiales du monogramme (1 à 3 caractères) quand il n'y a pas de logo. Défaut : déduites du nom.",
+      "errorMessage": "initiales : 1 à 3 caractères sans espace (ex. CF)"
+    },
+    "slogan": { "$ref": "#/definitions/texte", "description": "Accroche de l'accueil et du splash. Une virgule coupe le slogan en deux lignes." },
+    "sousTitre": { "type": "string", "maxLength": 60, "description": "Sous le nom, dans l'en-tête (ex. Commande en ligne · Thiès)." },
+    "description": { "type": "string", "maxLength": 160, "description": "Description de l'app (moteurs de recherche, installation). Défaut : générée." },
+    "etablissement": { "$ref": "#/definitions/texte", "description": "Nom de l'établissement imprimé sur les tickets et reçus." },
+    "couleurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principale"],
+      "properties": {
+        "principale": { "$ref": "#/definitions/couleur", "description": "Couleur de marque (boutons, accents)." },
+        "foncee": { "$ref": "#/definitions/couleur", "description": "Survol et appui des boutons. Défaut : calculée." },
+        "claire": { "$ref": "#/definitions/couleur", "description": "Accent sur fond sombre (splash, bannière). Défaut : calculée." }
+      },
+      "errorMessage": { "required": { "principale": "couleur principale manquante (couleurs.principale, ex. #A6192E)" } }
+    },
+    "coordonnees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["telephone", "emailSupport", "adresse"],
+      "properties": {
+        "telephone": { "$ref": "#/definitions/telephone" },
+        "emailSupport": {
+          "type": "string", "format": "email",
+          "errorMessage": "e-mail du support invalide (ex. support@chezfatou.sn)"
+        },
+        "adresse": { "$ref": "#/definitions/texte" },
+        "reseauxSociaux": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "whatsapp": { "$ref": "#/definitions/telephone" },
+            "instagram": { "$ref": "#/definitions/lien" },
+            "facebook": { "$ref": "#/definitions/lien" },
+            "tiktok": { "$ref": "#/definitions/lien" },
+            "site": { "$ref": "#/definitions/lien" }
+          },
+          "errorMessage": { "additionalProperties": "réseau social non géré (whatsapp, instagram, facebook, tiktok ou site)" }
+        }
+      }
+    },
+    "horaires": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ouverture", "services"],
+      "properties": {
+        "ouverture": {
+          "description": "Horaires d'ouverture AFFICHÉS (aide, pied de page). Ils ne bloquent pas les commandes.",
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["jours", "debut", "fin"],
+            "properties": {
+              "jours": { "$ref": "#/definitions/jours" },
+              "debut": { "$ref": "#/definitions/heure" },
+              "fin": { "$ref": "#/definitions/heure" }
+            }
+          }
+        },
+        "services": {
+          "description": "Services des plats du jour (heure de Dakar). Le dîner peut finir après minuit.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dejeuner", "diner"],
+          "properties": {
+            "dejeuner": { "$ref": "#/definitions/plage" },
+            "diner": { "$ref": "#/definitions/plage" }
+          }
+        }
+      }
+    },
+    "paiements": {
+      "description": "Moyens de paiement proposés. Les espèces ne s'acceptent qu'au comptoir.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wave", "orangeMoney", "mixxByYas", "carte", "especesComptoir"],
+      "properties": {
+        "wave": { "type": "boolean" },
+        "orangeMoney": { "type": "boolean" },
+        "mixxByYas": { "type": "boolean" },
+        "carte": { "type": "boolean" },
+        "especesComptoir": { "type": "boolean" }
+      },
+      "errorMessage": {
+        "required": "indiquez true ou false pour chaque moyen : wave, orangeMoney, mixxByYas, carte, especesComptoir",
+        "additionalProperties": "moyen de paiement non géré (wave, orangeMoney, mixxByYas, carte, especesComptoir)"
+      }
+    },
+    "modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["livraison", "retraitComptoir"],
+      "properties": {
+        "livraison": { "type": "boolean" },
+        "retraitComptoir": { "type": "boolean" }
+      }
+    },
+    "livraison": {
+      "description": "Zones livrées et frais (F CFA). Obligatoire si modes.livraison est vrai.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zones"],
+      "properties": {
+        "masquerAutresZones": {
+          "type": "boolean",
+          "description": "true (défaut) : les arrondissements officiels non listés d'une région livrée sont masqués."
+        },
+        "zones": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["region", "secteur", "frais"],
+            "properties": {
+              "region": { "type": "string", "pattern": "^[A-Z_]+$", "errorMessage": "région : code en majuscules (DAKAR, THIES, SAINT_LOUIS...)" },
+              "secteur": { "$ref": "#/definitions/texte", "description": "Arrondissement officiel (ex. Almadies) ou zone propre au restaurant." },
+              "departement": { "$ref": "#/definitions/texte", "description": "Obligatoire pour une zone qui n'est pas un arrondissement officiel." },
+              "frais": { "$ref": "#/definitions/prix" }
+            },
+            "errorMessage": { "required": { "frais": "zone sans frais : indiquez les frais de livraison (F CFA, 0 si gratuite)" } }
+          }
+        }
+      }
+    },
+    "accueil": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "badge": { "type": "string", "maxLength": 40, "description": "Pastille au-dessus du slogan (ex. Sans compte · Paiement mobile)." },
+        "texte": { "type": "string", "maxLength": 140, "description": "Phrase sous le slogan." }
+      }
+    },
+    "assets": {
+      "description": "Fichiers du dossier assets/ (chemins relatifs au dossier du restaurant).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logo"],
+      "properties": {
+        "logo": { "$ref": "#/definitions/fichierImage", "description": "Logo carré, SVG ou PNG 512 px minimum, fond transparent ou plein." },
+        "monogramme": { "$ref": "#/definitions/fichierImage", "description": "Version compacte pour les icônes. Défaut : le logo." },
+        "favicon": { "$ref": "#/definitions/fichierImage", "description": "Icône de l'onglet. Défaut : le monogramme." },
+        "iconesPwa": {
+          "type": "object", "additionalProperties": false,
+          "description": "Icônes déjà prêtes ; sinon générées depuis le monogramme.",
+          "properties": {
+            "icone192": { "$ref": "#/definitions/fichierImage" },
+            "icone512": { "$ref": "#/definitions/fichierImage" },
+            "maskable512": { "$ref": "#/definitions/fichierImage" },
+            "appleTouch": { "$ref": "#/definitions/fichierImage" }
+          }
+        },
+        "banniere": { "$ref": "#/definitions/fichierImage", "description": "Bannière de l'accueil, paysage, 1600 × 900 px conseillé." },
+        "splash": { "$ref": "#/definitions/fichierImage", "description": "Fond de l'écran de démarrage, portrait, 1080 × 1920 px conseillé." },
+        "connexion": {
+          "type": "array", "maxItems": 3, "items": { "$ref": "#/definitions/fichierImage" },
+          "description": "1 à 3 photos de l'écran de connexion du Manager."
+        }
+      },
+      "errorMessage": { "required": { "logo": "logo absent : assets.logo est obligatoire (ex. assets/logo.svg)" } }
+    },
+    "deploiement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urlClient", "urlManager", "emailCertificats"],
+      "properties": {
+        "urlClient": { "$ref": "#/definitions/urlHttps", "description": "Adresse publique de l'App Client (ex. https://commande.chezfatou.sn)." },
+        "urlManager": { "$ref": "#/definitions/urlHttps", "description": "Adresse du back-office (ex. https://gestion.chezfatou.sn)." },
+        "emailCertificats": { "type": "string", "format": "email", "errorMessage": "e-mail des certificats HTTPS invalide" },
+        "versionImages": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Tag des images Docker communes (défaut : latest)." }
+      }
+    }
+  },
+  "errorMessage": {
+    "additionalProperties": "champ inconnu (faute de frappe ?) : seuls les champs décrits dans le guide sont acceptés"
+  },
+  "definitions": {
+    "texte": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S", "errorMessage": "texte vide ou trop long (120 caractères maximum)" },
+    "couleur": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "errorMessage": "couleur invalide : format #RRGGBB attendu (ex. #A6192E)" },
+    "heure": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "errorMessage": "heure invalide : format HH:MM attendu (ex. 18:30)" },
+    "plage": {
+      "type": "object", "additionalProperties": false, "required": ["debut", "fin"],
+      "properties": { "debut": { "$ref": "#/definitions/heure" }, "fin": { "$ref": "#/definitions/heure" } }
+    },
+    "jours": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "enum": ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"], "errorMessage": "jour invalide : lundi, mardi, mercredi, jeudi, vendredi, samedi ou dimanche" }
+    },
+    "telephone": { "type": "string", "pattern": "^\\+[1-9][0-9]{7,14}$", "errorMessage": "téléphone invalide : format international sans espace (ex. +221771234567)" },
+    "lien": { "type": "string", "pattern": "^https://\\S+$", "errorMessage": "lien invalide : adresse https:// complète attendue" },
+    "urlHttps": { "type": "string", "pattern": "^https://[a-z0-9.-]+\\.[a-z]{2,}/?$", "errorMessage": "adresse invalide : https://sous-domaine.domaine attendu, sans chemin (ex. https://commande.chezfatou.sn)" },
+    "prix": { "type": "integer", "minimum": 0, "maximum": 10000000, "errorMessage": "montant invalide : entier en F CFA, positif ou nul (pas de décimales)" },
+    "fichierImage": {
+      "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.(svg|png|jpg|jpeg|webp)$",
+      "errorMessage": "chemin d'image invalide : chemin relatif au dossier, sans espace ni accent, .svg, .png, .jpg ou .webp (ex. assets/logo.svg)"
+    }
+  }
+}

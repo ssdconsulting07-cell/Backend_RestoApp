@@ -25,6 +25,17 @@ mvn spring-boot:run
 
 Il faut alors une base MySQL déjà accessible en local — configurer `src/main/resources/application.properties`, ou pointer sur celle lancée par `docker compose up mysql`.
 
+## Livrer un nouveau restaurant
+
+Un dossier de configuration (`clients/<restaurant>/`, ou un dossier du dépôt privé `Clients_RestoApp`) et une commande, sans toucher au code :
+
+```sh
+npm ci
+npm run client -- <chemin-ou-identifiant>     # ex. npm run client -- exemple
+```
+
+La commande valide le dossier, puis génère `deploiements/<restaurant>/` : `.env` de la marque, compose de production, logo et icônes, et données initiales importées au démarrage sans doublon (`restaurant/ImportRestaurant`). Voir **[PERSONNALISER-UN-RESTAURANT.md](PERSONNALISER-UN-RESTAURANT.md)**.
+
 ## Organisation — par fonctionnalité
 
 Chaque paquet ci-dessous regroupe son propre contrôleur, service, repository, entité et DTO (pas de découpage par couche technique global) :

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "ouverture",
+    "titre": "Ouverture de la commande en ligne",
+    "statut": "ACTIF",
+    "slides": [
+      {
+        "titre": "Kër Saveurs livre tout Thiès",
+        "message": "Commandez vos grillades en ligne, payez par Wave ou Orange Money.",
+        "image": "donnees/photos/poisson-braise.jpg"
+      },
+      {
+        "titre": "Livraison offerte à Thiès Nord",
+        "message": "Toute la première semaine, dès 5 000 F CFA.",
+        "image": "donnees/photos/brochettes-boeuf.jpg"
+      }
+    ]
+  }
+]

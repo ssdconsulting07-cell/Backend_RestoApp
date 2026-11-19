@@ -1,0 +1,28 @@
+[
+  {
+    "id": "thieboudienne",
+    "nom": "Thiéboudienne",
+    "description": "Riz au poisson, légumes, sauce tomate.",
+    "prix": 3000,
+    "photo": "donnees/photos/thieboudienne.jpg",
+    "jours": ["lundi", "mercredi", "samedi"],
+    "services": ["dejeuner"]
+  },
+  {
+    "id": "soupou-kandia",
+    "nom": "Soupou kandia",
+    "description": "Sauce gombo, poisson fumé, riz blanc.",
+    "prix": 3000,
+    "photo": "donnees/photos/soupou-kandia.jpg",
+    "jours": ["mardi", "vendredi"],
+    "services": ["dejeuner"]
+  },
+  {
+    "id": "thiou-poulet",
+    "nom": "Thiou poulet",
+    "description": "Poulet mijoté à la tomate, légumes, riz.",
+    "prix": 3500,
+    "photo": "donnees/photos/thiou-poulet.jpg",
+    "jours": ["jeudi", "dimanche"]
+  }
+]

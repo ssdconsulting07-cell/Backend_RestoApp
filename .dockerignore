@@ -1,0 +1,6 @@
+# Seuls pom.xml et src/ entrent dans l'image (voir Dockerfile). Rien d'autre
+# n'est envoye au demon Docker : surtout pas les deploiements generes
+# (.env.secrets, comptes-initiaux.txt) ni les dossiers des restaurants.
+*
+!pom.xml
+!src/

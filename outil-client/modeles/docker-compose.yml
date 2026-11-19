@@ -1,0 +1,149 @@
+# Deploiement d'UN restaurant (genere par npm run client : ne pas modifier a la
+# main, modifier clients/<restaurant>/ puis relancer la commande).
+#
+# Memes images Docker pour tous les restaurants : la marque (.env, MARQUE_*,
+# dossier marque/) et les donnees initiales (dossier donnees/) sont LUES AU
+# DEMARRAGE. Une mise a jour des images profite donc a tous les clients.
+#
+#   cp .env.secrets.exemple .env.secrets     # une seule fois, puis remplir
+#   docker compose --env-file .env --env-file .env.secrets up -d
+#
+# Seul Caddy (HTTPS) est expose a Internet ; backend et MySQL restent internes.
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAINE_CLIENT: ${DOMAINE_CLIENT:?Renseignez DOMAINE_CLIENT}
+      DOMAINE_MANAGER: ${DOMAINE_MANAGER:?Renseignez DOMAINE_MANAGER}
+      EMAIL_CERTIFICATS: ${EMAIL_CERTIFICATS:?Renseignez EMAIL_CERTIFICATS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-donnees:/data
+      - caddy-config:/config
+    depends_on:
+      client:
+        condition: service_healthy
+      manager:
+        condition: service_healthy
+    logging: &journaux
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Renseignez MYSQL_ROOT_PASSWORD dans .env.secrets}
+      MYSQL_DATABASE: senyummies
+      MYSQL_USER: senyummies
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Renseignez MYSQL_PASSWORD dans .env.secrets}
+      TZ: Africa/Dakar
+    volumes:
+      - mysql-donnees:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    logging: *journaux
+
+  sauvegarde:
+    image: mysql:8.0
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_PWD: ${MYSQL_PASSWORD}
+      SAUVEGARDE_JOURS: ${SAUVEGARDE_JOURS:-14}
+      TZ: Africa/Dakar
+    volumes:
+      - sauvegardes:/sauvegardes
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -u
+        while true; do
+          attente=$$(( ( $$(date -d 'tomorrow 02:00' +%s) - $$(date +%s) ) ))
+          sleep "$$attente"
+          fichier=/sauvegardes/restaurant-$$(date +%Y%m%d-%H%M).sql.gz
+          if mysqldump -h mysql -u senyummies --single-transaction --routines --no-tablespaces senyummies | gzip > "$$fichier.tmp"; then
+            mv "$$fichier.tmp" "$$fichier" && echo "sauvegarde OK : $$fichier"
+          else
+            rm -f "$$fichier.tmp"; echo "ECHEC de la sauvegarde" >&2
+          fi
+          find /sauvegardes -name 'restaurant-*.sql.gz' -mtime +"$$SAUVEGARDE_JOURS" -delete
+        done
+    logging: *journaux
+
+  backend:
+    image: ${REGISTRE:-senyummies}/backend:${VERSION:-latest}
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/senyummies
+      SPRING_DATASOURCE_USERNAME: senyummies
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET:?Renseignez JWT_SECRET dans .env.secrets (32 caracteres minimum)}
+      APP_AUTH_SEED_ENABLED: "false"
+      APP_AUTH_MANAGER_INITIAL_IDENTIFIANT: ${MANAGER_INITIAL_IDENTIFIANT:-}
+      APP_AUTH_MANAGER_INITIAL_MOT_DE_PASSE: ${MANAGER_INITIAL_MOT_DE_PASSE:-}
+      APP_CORS_ALLOWED_ORIGINS: https://${DOMAINE_CLIENT},https://${DOMAINE_MANAGER}
+      APP_PAIEMENT_PRESTATAIRE: ${PAIEMENT_PRESTATAIRE:?Renseignez PAIEMENT_PRESTATAIRE dans .env.secrets}
+      # Ce que le restaurant propose (refuse aussi cote serveur).
+      APP_RESTAURANT_MOYENS_PAIEMENT: ${APP_RESTAURANT_MOYENS_PAIEMENT}
+      APP_RESTAURANT_MODES: ${APP_RESTAURANT_MODES}
+      # Catalogue, zones, horaires, annonces et comptes initiaux : importes au
+      # demarrage, sans doublon, sans jamais ecraser une fiche du Gerant.
+      APP_RESTAURANT_IMPORT_DOSSIER: /restaurant
+      TZ: Africa/Dakar
+    volumes:
+      - photos:/app/donnees/photos
+      - ./donnees:/restaurant:ro
+    logging: *journaux
+
+  client:
+    image: ${REGISTRE:-senyummies}/client:${VERSION:-latest}
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      API_BASE_URL: /api/v1
+      API_UPSTREAM: http://backend:8080
+    volumes:
+      - ./marque:/marque:ro
+    logging: *journaux
+
+  manager:
+    image: ${REGISTRE:-senyummies}/manager:${VERSION:-latest}
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      API_BASE_URL: /api/v1
+      API_UPSTREAM: http://backend:8080
+    volumes:
+      - ./marque:/marque:ro
+    logging: *journaux
+
+volumes:
+  caddy-donnees:
+  caddy-config:
+  mysql-donnees:
+  sauvegardes:
+  photos:
